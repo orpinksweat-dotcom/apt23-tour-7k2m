@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%230b0b0d%27/%3E%3Cpath d=%27M7 24V12l9-6 9 6v12z%27 fill=%27none%27 stroke=%27%23dcb97e%27 stroke-width=%272%27/%3E%3C/svg%3E">
+<meta name="robots" content="noindex,nofollow">
+<title>דירה 23 · סיור תלת־ממדי</title>
+<meta name="description" content="סיור תלת־ממדי אינטראקטיבי בדירה 23: הליכה בכל החדרים, שלושה סגנונות עיצוב ותאורה לפי שעות היום. הדמיה להמחשה בלבד.">
+<meta property="og:title" content="דירה 23 · סיור תלת־ממדי">
+<meta property="og:description" content="הליכה בדירה, שלושה סגנונות, שעות היום וסיור מודרך.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0b0d;--ink:#f4f0e9;--mut:#a39b90;--line:rgba(255,255,255,.09);--gold:#dcb97e;--gold2:#f0d9ad;
+  --glass:rgba(22,20,18,.58);--glass2:rgba(34,31,28,.72);--r:22px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --t1:12px;--t2:14px;--t3:18px;--t4:34px;
+  --sa:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none}
+#app{position:fixed;inset:0;height:100dvh}
+canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
+.num{font-variant-numeric:tabular-nums}
+/* glass double bezel */
+.glass{background:var(--glass);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);border-radius:var(--r);box-shadow:0 0 0 1px var(--line),0 18px 50px -14px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.07)}
+.hud{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .6s var(--ease)}
+.hud.on{opacity:1}
+.hud>*{pointer-events:auto}
+/* minimap */
+#mini{position:absolute;top:calc(var(--st) + 14px);left:14px;width:132px;height:84px;padding:6px;border-radius:18px}
+#mini canvas{width:100%;height:100%;display:block;border-radius:12px}
+/* top controls */
+#topbar{position:absolute;top:calc(var(--st) + 14px);right:14px;display:flex;gap:8px}
+.ibtn{width:44px;height:44px;border-radius:15px;display:grid;place-items:center;transition:transform .25s var(--ease),background .25s}
+.ibtn:active{transform:scale(.92)}
+.ibtn svg{width:21px;height:21px;stroke:var(--ink);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#modes{position:absolute;top:calc(var(--st) + 14px);left:50%;transform:translateX(-50%);display:flex;padding:4px;border-radius:999px;gap:2px}
+#modes button{padding:9px 16px;border-radius:999px;font-size:var(--t2);color:var(--mut);transition:all .35s var(--ease);white-space:nowrap}
+#modes button.on{background:linear-gradient(180deg,#f3dfb6,#d4ad6c);color:#241a08;font-weight:600;box-shadow:0 6px 18px -6px rgba(220,185,126,.6)}
+/* quick column */
+#quick{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+/* tour bar */
+#tourbar{position:absolute;top:calc(var(--st) + 70px);left:50%;transform:translate(-50%,-14px);width:min(92vw,520px);padding:14px 16px 14px;opacity:0;pointer-events:none;transition:all .5s var(--ease)}
+#tourbar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#tourbar h3{margin:0;font-size:var(--t3);font-weight:600;letter-spacing:.2px}
+#tourbar p{margin:3px 0 10px;font-size:var(--t2);color:var(--mut)}
+#tourbar .row{display:flex;align-items:center;gap:8px}
+#tourbar .prog{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+#tourbar .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .6s var(--ease)}
+#tourbar .ibtn{width:38px;height:38px;border-radius:12px}
+/* joystick */
+#joy{position:absolute;left:calc(22px);bottom:calc(var(--sa) + 112px);width:128px;height:128px;border-radius:50%;opacity:.9;touch-action:none}
+#joy::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.07),rgba(255,255,255,.02));box-shadow:0 0 0 1px var(--line),inset 0 0 30px rgba(220,185,126,.07);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#joy i{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f6e3bd,#c99f5e);box-shadow:0 8px 20px -6px rgba(0,0,0,.7)}
+body.nojoy #joy{display:none}
+body.pointer #joy{display:none}
+/* dock */
+#dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--sa) + 14px);display:flex;gap:2px;padding:6px;border-radius:26px;max-width:calc(100vw - 20px)}
+#dock button{width:62px;padding:8px 0 6px;border-radius:20px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:var(--t1);color:var(--mut);transition:all .3s var(--ease)}
+#dock button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#dock button.on{color:var(--gold2);background:rgba(220,185,126,.12)}
+/* sheet */
+#sheet{position:absolute;left:50%;transform:translate(-50%,24px);bottom:calc(var(--sa) + 92px);width:min(94vw,560px);max-height:58dvh;overflow:auto;padding:18px;opacity:0;pointer-events:none;transition:all .45s var(--ease);touch-action:pan-y;-webkit-overflow-scrolling:touch}
+#sheet.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#sheet h4{margin:0 0 12px;font-size:var(--t3);font-weight:600}
+#sheet h5{margin:16px 0 8px;font-size:var(--t1);font-weight:500;color:var(--mut);letter-spacing:.6px}
+.grid{display:grid;gap:8px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
+.chip{padding:12px 10px;border-radius:16px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line);text-align:right;font-size:var(--t2);transition:all .3s var(--ease);min-height:48px}
+.chip small{display:block;color:var(--mut);font-size:var(--t1);margin-top:2px}
+.chip.on{background:linear-gradient(180deg,rgba(240,217,173,.2),rgba(220,185,126,.1));box-shadow:inset 0 0 0 1px rgba(240,217,173,.55);color:var(--gold2)}
+.chip:active{transform:scale(.97)}
+.style-card{padding:12px;border-radius:18px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line);text-align:center;transition:all .3s var(--ease)}
+.style-card .sw{height:46px;border-radius:12px;margin-bottom:8px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.style-card b{display:block;font-size:var(--t2);font-weight:600}
+.style-card small{font-size:var(--t1);color:var(--mut)}
+.style-card.on{background:rgba(220,185,126,.14);box-shadow:inset 0 0 0 1px rgba(240,217,173,.6)}
+.row2{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;font-size:var(--t2)}
+.sw-t{width:46px;height:28px;border-radius:99px;background:rgba(255,255,255,.12);position:relative;transition:background .3s var(--ease);flex:none}
+.sw-t::after{content:"";position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .3s var(--ease)}
+.sw-t.on{background:linear-gradient(180deg,#e6c48a,#c99f5e)}.sw-t.on::after{transform:translateX(-18px)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:170px;height:28px;background:transparent;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:rgba(255,255,255,.18)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;border-radius:50%;background:linear-gradient(180deg,#f6e3bd,#c99f5e);box-shadow:0 4px 12px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:rgba(255,255,255,.18)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:#d4ad6c}
+.btn{padding:13px 16px;border-radius:16px;font-size:var(--t2);font-weight:500;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line);transition:transform .25s var(--ease)}
+.btn:active{transform:scale(.97)}
+.btn.pri{background:linear-gradient(180deg,#f3dfb6,#d4ad6c);color:#241a08;font-weight:600;box-shadow:0 10px 28px -10px rgba(220,185,126,.7)}
+.note{font-size:var(--t1);color:var(--mut);line-height:1.55;margin-top:10px}
+/* intro */
+#intro{position:absolute;inset:0;display:grid;place-items:end center;padding:24px 20px calc(var(--sa) + 26px);background:linear-gradient(180deg,rgba(8,8,10,.15) 0%,rgba(8,8,10,.35) 38%,rgba(8,8,10,.92) 100%);transition:opacity .8s var(--ease),visibility .8s;z-index:5}
+#intro.off{opacity:0;visibility:hidden;pointer-events:none}
+#intro .card{width:min(100%,520px);text-align:center}
+#intro .eyebrow{font-size:var(--t1);letter-spacing:3px;color:var(--gold);margin-bottom:10px}
+#intro h1{margin:0;font-size:var(--t4);font-weight:300;letter-spacing:-.3px;line-height:1.1}
+#intro h1 b{font-weight:600;background:linear-gradient(180deg,#f6e6c4,#d1a966);-webkit-background-clip:text;background-clip:text;color:transparent}
+#intro p{color:var(--mut);font-size:var(--t2);line-height:1.6;margin:12px 0 20px}
+#intro .btns{display:grid;gap:10px}
+#intro .btns .btn{padding:16px}
+#intro .tiny{font-size:var(--t1);color:#7f786e;margin-top:14px;line-height:1.5}
+#intro .hint{display:flex;justify-content:center;gap:14px;font-size:var(--t1);color:var(--mut);margin-bottom:18px}
+#load{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:var(--bg);transition:opacity .6s,visibility .6s;text-align:center}
+#load.off{opacity:0;visibility:hidden}
+#load .bar{width:160px;height:2px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin:14px auto 0}
+#load .bar i{display:block;height:100%;width:40%;background:var(--gold);animation:slide 1.2s var(--ease) infinite}
+@keyframes slide{0%{transform:translateX(120%)}100%{transform:translateX(-260%)}}
+#fail{position:absolute;inset:0;z-index:20;display:none;place-items:center;background:var(--bg);text-align:center;padding:30px}
+#fail.on{display:grid}
+#fail p{color:var(--mut);font-size:var(--t2);max-width:340px;line-height:1.6}
+#toast{position:absolute;left:50%;bottom:calc(var(--sa) + 100px);transform:translate(-50%,12px);padding:11px 18px;border-radius:999px;font-size:var(--t2);opacity:0;pointer-events:none;transition:all .4s var(--ease);z-index:8;white-space:nowrap}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+/* room label */
+#roomlbl{position:absolute;left:50%;bottom:calc(var(--sa) + 92px);transform:translate(-50%,10px);padding:10px 18px;border-radius:16px;text-align:center;opacity:0;pointer-events:none;transition:all .5s var(--ease)}
+#roomlbl.on{opacity:1;transform:translate(-50%,0)}
+#roomlbl b{display:block;font-size:var(--t3);font-weight:600}#roomlbl small{color:var(--mut);font-size:var(--t1)}
+/* compare */
+#cmp{position:absolute;inset:0;z-index:7;display:none;place-items:center;background:rgba(6,6,8,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#cmp.on{display:grid}
+#cmp .box{width:min(96vw,760px);padding:16px}
+#cmp canvas{width:100%;display:block;border-radius:14px;background:#0f0e0d}
+#cmp .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:var(--t1);color:var(--mut);margin-top:10px}
+#cmp .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:6px;vertical-align:-1px}
+@media (max-width:640px){#modes{top:calc(var(--st) + 80px)}#tourbar{top:calc(var(--st) + 80px)}#mini{width:112px;height:72px}}
+body.touring #modes{opacity:0;pointer-events:none}
+@media (max-width:420px){#dock button{width:56px}#modes button{padding:9px 12px}}
+@media (orientation:landscape) and (max-height:520px){
+  #dock{bottom:calc(var(--sa) + 8px)}#sheet{bottom:calc(var(--sa) + 76px);max-height:calc(100dvh - 160px)}#joy{bottom:calc(var(--sa) + 84px);width:112px;height:112px}
+  #mini{width:112px;height:72px}#intro .card{max-width:420px}#intro{place-items:center end;padding-right:5vw}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="c" tabindex="0" aria-label="סיור תלת־ממדי בדירה"></canvas>
+
+  <div id="load"><div><div style="font-size:var(--t3);font-weight:300;letter-spacing:.5px">טוען את הדירה…</div><div class="bar"><i></i></div></div></div>
+  <div id="fail"><div><h2 style="font-weight:600;font-size:var(--t3);margin:0 0 8px">לא הצלחנו להציג את התלת־ממד</h2><p>הדפדפן או המכשיר לא תומכים כרגע ב-WebGL. נסו לרענן, לפתוח ב-Safari או Chrome עדכניים, או לכבות מצב חיסכון באנרגיה.</p><button class="btn pri" id="retry" style="margin-top:14px">נסה שוב</button></div></div>
+
+  <div id="intro" class="off">
+    <div class="card">
+      <div class="eyebrow">סיור תלת־ממדי · הרצליה</div>
+      <h1>דירה <b>23</b></h1>
+      <p>לכו בכל חללי הדירה בגובה העיניים, החליפו בנגיעה בין שלושה סגנונות עיצוב, ראו את האור משתנה לאורך היום, והציצו על התוכנית המוצעת: מטבח אירוח גדול, נישת אירוח ומטבח חוץ במרפסת הגג.</p>
+      <div class="hint"><span>ג׳ויסטיק להליכה</span><span>גרירה להסתכלות</span><span>הקשה על הרצפה להתקדמות</span></div>
+      <div class="btns">
+        <button class="btn pri" id="goWalk">כניסה לסיור</button>
+        <div class="grid g2"><button class="btn" id="goTour">סיור מודרך</button><button class="btn" id="goTop">מבט־על</button></div>
+      </div>
+      <div class="tiny">הדמיה להמחשה בלבד. כל שינוי בתכנון (איחוד חדר השינה למטבח, נישה, מטבח חוץ) טעון אישור אדריכל, קונסטרוקטור והיתרים. הריהוט והעיצוב אינם חלק מהמפרט.</div>
+    </div>
+  </div>
+
+  <div id="hud" class="hud">
+    <div id="mini" class="glass"><canvas id="miniC" width="240" height="152"></canvas></div>
+    <div id="modes" class="glass"><button id="mWalk" class="on">הליכה</button><button id="mTop">מבט־על</button><button id="mTour">סיור מודרך</button></div>
+    <div id="topbar">
+      <button class="ibtn glass" id="bFull" aria-label="מסך מלא"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button class="ibtn glass" id="bShare" aria-label="שתף קישור"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 14v6h14v-6"/></svg></button>
+    </div>
+    <div id="quick">
+      <button class="ibtn glass" id="qEntry" aria-label="חזרה לכניסה"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 10v10h12V10M10 20v-6h4v6"/></svg></button>
+      <button class="ibtn glass" id="qTop" aria-label="חזרה למבט־על"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5-9 5zM3 13l9 5 9-5"/></svg></button>
+      <button class="ibtn glass" id="qReset" aria-label="איפוס זווית"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg></button>
+    </div>
+    <div id="tourbar" class="glass"><h3 id="tbT">—</h3><p id="tbP">—</p><div class="row">
+      <button class="ibtn" id="tbPrev" aria-label="הקודם"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <button class="ibtn" id="tbPause" aria-label="עצור או המשך"><svg viewBox="0 0 24 24" id="tbIc"><path d="M8 5v14M16 5v14"/></svg></button>
+      <button class="ibtn" id="tbNext" aria-label="דלג"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="prog"><i id="tbProg"></i></div>
+      <button class="ibtn" id="tbEnd" aria-label="סיור עצמי"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+    <div id="roomlbl" class="glass"><b id="rlN"></b><small id="rlS"></small></div>
+    <div id="joy"><i></i></div>
+    <div id="sheet" class="glass"></div>
+    <div id="dock" class="glass">
+      <button data-p="rooms"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>חדרים</button>
+      <button data-p="style"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2-.6-1.3.2-2.5 1.6-2.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="14.5" cy="7" r="1"/></svg>סגנון</button>
+      <button data-p="time"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>שעה</button>
+      <button data-p="tour"><svg viewBox="0 0 24 24"><path d="M5 4v17M5 5h11l-2 4 2 4H5"/></svg>סיור</button>
+      <button data-p="more"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>עוד</button>
+    </div>
+  </div>
+  <div id="toast" class="glass"></div>
+  <div id="cmp"><div class="box glass"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="grid g2" style="width:230px"><button class="chip on" id="cmO">מוצע</button><button class="chip" id="cmS">מקור</button></div><button class="ibtn" id="cmX" aria-label="סגור"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><canvas id="cmC" width="1200" height="700"></canvas><div class="legend" id="cmL"></div><div class="note">שרטוט סכמטי מנוקה, בנוי מהקירות שנמדדו בתוכנית. כל השינויים המסומנים הם הצעה בלבד וטעונים אישור אדריכל, קונסטרוקטור, בדיקת אינסטלציה והיתרים.</div></div></div>
+</div>
+<noscript><div style="position:fixed;inset:0;display:grid;place-items:center;background:#0b0b0d;color:#eee;font-family:sans-serif;text-align:center;padding:30px">האתר דורש JavaScript ו-WebGL כדי להציג את הסיור התלת־ממדי.</div></noscript>
+<script type="module" src="./js/main.js"></script>
+<script>setTimeout(function(){if(!window.__apt){var l=document.getElementById("load"),f=document.getElementById("fail");if(l)l.classList.add("off");if(f){f.classList.add("on");document.getElementById("retry").onclick=function(){location.reload()}}}},12000)</script>
+</body>
+</html>
