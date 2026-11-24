@@ -5,7 +5,7 @@ export const STYLES = {
   A: {
     key: 'A', name: 'מודרני יוקרתי', sub: 'אבן בהירה · קווים נקיים',
     wall: '#ece9e3', ceiling: '#f4f2ee', floorPub: '#cdc9c0', floorWood: '#b9a58e', tile: '#d6d3cd', wallWet: '#c9c6bf',
-    cab: '#c8c2b7', cabTall: '#9d978d', counter: '#ecebe7', metal: '#26282b', accent: '#2f3236',
+    cab: '#c8c2b7', cabTall: '#9d978d', counter: '#ecebe7', metal: '#26282b', accent: '#2f3236', cabPaint: true, veins: 0.35,
     sofa: '#d2cec6', cushion: '#6f737a', rug: '#cfcac1', curtain: '#f1efea', woodF: '#5b4636', woodL: '#a9906f',
     bed: '#e9e6e0', bedAcc: '#6b6f76', deck: '#a89f92', plant: 1.0, lampK: 3600, glow: '#ffe8cf',
     pendant: 'bar', rugRound: false, brass: '#8d8a84'
@@ -13,15 +13,39 @@ export const STYLES = {
   B: {
     key: 'B', name: 'יוקרה חמימה', sub: 'אלון · טרוורטין · בדים',
     wall: '#efe6d7', ceiling: '#f7f1e6', floorPub: '#cbbd9f', floorWood: '#c19a6b', tile: '#e4d9c3', wallWet: '#dccfb6',
-    cab: '#b98d5c', cabTall: '#d8c7aa', counter: '#e6dcc8', metal: '#7a5a34', accent: '#b98d5c',
+    cab: '#b98d5c', cabTall: '#d8c7aa', counter: '#e6dcc8', metal: '#7a5a34', accent: '#b98d5c', veins: 1.2,
     sofa: '#e6dccb', cushion: '#a68a6a', rug: '#d6c7ad', curtain: '#efe3cf', woodF: '#9b6f43', woodL: '#c9a173',
     bed: '#f1e9db', bedAcc: '#b59a78', deck: '#b98f62', plant: 1.8, lampK: 2500, glow: '#ffd9a8',
     pendant: 'dome', rugRound: true, brass: '#b8925a'
   },
+  D: {
+    key: 'D', name: 'יפני־סקנדי חם', sub: 'אלון בהיר · קווים שקטים',
+    wall: '#efe9df', ceiling: '#f7f3ec', floorPub: '#cbbfab', floorWood: '#c9a97c', tile: '#ddd3c1', wallWet: '#d6cab6',
+    cab: '#d2bd9b', cabTall: '#e3dccf', counter: '#efeae0', metal: '#2b2926', accent: '#3a3733',
+    sofa: '#d8cfc0', cushion: '#8a7a66', rug: '#d7ccb9', curtain: '#f3eee4', woodF: '#8b6b4a', woodL: '#cfb089',
+    bed: '#f1ece2', bedAcc: '#8a7a66', deck: '#b59a76', plant: 1.2, lampK: 2800, glow: '#ffe0b8', veins: 0.5,
+    pendant: 'dome', rugRound: true, brass: '#9a8c78'
+  },
+  E: {
+    key: 'E', name: 'ים־תיכוני מעודן', sub: 'חימר · זית · שמנת',
+    wall: '#f1e4d3', ceiling: '#f8efe2', floorPub: '#cdb297', floorWood: '#b9875a', tile: '#e6d0b8', wallWet: '#e0c9ae',
+    cab: '#8a9a78', cabTall: '#e6d8c2', counter: '#f0e6d4', metal: '#3a2f26', accent: '#b0623f', cabPaint: true,
+    sofa: '#e5d3b8', cushion: '#b0623f', rug: '#d9bf9f', curtain: '#f4e9d6', woodF: '#8a5a36', woodL: '#c08e58',
+    bed: '#f2e8d8', bedAcc: '#b0623f', deck: '#b88a5e', plant: 1.6, lampK: 2500, glow: '#ffd2a0', veins: 0.9,
+    pendant: 'dome', rugRound: false, brass: '#b8863f'
+  },
+  F: {
+    key: 'F', name: 'מרווה ואלון', sub: 'ירוק עדין · עץ · שמנת',
+    wall: '#eceae0', ceiling: '#f6f5ee', floorPub: '#c9c3b2', floorWood: '#bf9a6a', tile: '#d8d6c8', wallWet: '#cfcdbe',
+    cab: '#a9b59a', cabTall: '#dcd9cb', counter: '#efede4', metal: '#2c2e2b', accent: '#7d8b6e', cabPaint: true,
+    sofa: '#d9d6c6', cushion: '#7d8b6e', rug: '#d2cdb8', curtain: '#f2f0e6', woodF: '#7b5a3a', woodL: '#c4a074',
+    bed: '#f0eee4', bedAcc: '#7d8b6e', deck: '#a99070', plant: 1.5, lampK: 2900, glow: '#ffe2b8', veins: 0.4,
+    pendant: 'globe', rugRound: true, brass: '#a98f5a'
+  },
   C: {
     key: 'C', name: 'Warm Modern Luxury', sub: 'ההמלצה שלי · יוקרה ופרקטיות',
     wall: '#ebe4d9', ceiling: '#f5f1ea', floorPub: '#bfb4a2', floorWood: '#b48d62', tile: '#dcd3c4', wallWet: '#d3c9b8',
-    cab: '#c0a47c', cabTall: '#c8c0b2', counter: '#efebe3', metal: '#2d2a27', accent: '#a9824f',
+    cab: '#c0a47c', cabTall: '#c8c0b2', counter: '#efebe3', metal: '#2d2a27', accent: '#a9824f', veins: 0.7,
     sofa: '#d3c6b0', cushion: '#7c6a54', rug: '#cfc3ad', curtain: '#f2ece1', woodF: '#6d4b30', woodL: '#b99468',
     bed: '#efe9de', bedAcc: '#8a735a', deck: '#a7835a', plant: 1.4, lampK: 3000, glow: '#ffdcb0',
     pendant: 'globe', rugRound: false, brass: '#b08d57'
@@ -132,16 +156,16 @@ export function applyStyle(key) {
   const set = (m, t, c) => { m.map = t; m.color.set(c ? c : '#ffffff'); m.needsUpdate = true; };
   Object.values(tex).forEach(t => t.dispose && t.dispose());
   tex.plaster = genPlaster(S.wall); tex.ceil = genPlaster(S.ceiling); tex.wallWet = genTile(S.wallWet);
-  tex.stone = genStone(S.floorPub, key === 'B' ? 1.2 : key === 'A' ? 0.35 : 0.7);
-  tex.wood = genWood(S.floorWood, key === 'A' ? .26 : .18); tex.tile = genStone(S.tile, 0.2);
-  tex.deck = genDeck(S.deck); tex.cabw = genWood(S.cab, 0.3); tex.counter = genStone(S.counter, key === 'B' ? 0.9 : 0.4);
+  tex.stone = genStone(S.floorPub, S.veins ?? 0.6);
+  tex.wood = genWood(S.floorWood, key === 'A' || key === 'D' ? .26 : .18); tex.tile = genStone(S.tile, 0.2);
+  tex.deck = genDeck(S.deck); tex.cabw = genWood(S.cab, 0.3); tex.counter = genStone(S.counter, (S.veins ?? 0.6) * 0.7);
   tex.fab = genFabric(S.sofa); tex.rug = genFabric(S.rug); tex.woodF = genWood(S.woodF, .3); tex.woodL = genWood(S.woodL, .3);
   set(M.wall, tex.plaster); set(M.ceiling, tex.ceil); set(M.wallWet, tex.wallWet);
   set(M.floorPub, tex.stone); set(M.floorWood, tex.wood); set(M.tile, tex.tile);
   set(M.deck, tex.deck); set(M.counter, tex.counter);
   tex.art = genArt(shade(S.wall, -0.04), S.accent, S.cushion); M.art.map = tex.art; M.art.needsUpdate = true;
   // cabinets: oak for B, mix in C, matte stone-grey in A
-  if (key === 'A') set(M.cab, null, S.cab); else set(M.cab, tex.cabw);
+  if (S.cabPaint) set(M.cab, null, S.cab); else set(M.cab, tex.cabw);
   M.cabTall.map = null; M.cabTall.color.set(S.cabTall); M.cabTall.needsUpdate = true;
   M.metal.color.set(S.metal); M.brass.color.set(S.brass);
   set(M.sofa, tex.fab, S.sofa); M.sofa.color.set('#ffffff'); tex.fab.needsUpdate = true;

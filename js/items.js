@@ -65,6 +65,7 @@ export const TYPES = {
   kidsMat: { label: 'מזרן משחק', cat: 'מרפסת', def: { w: 2.3, d: 2.3 }, noBlock: true, fp: p => [p.w, p.d, 0], make: (b, it, p) => kidsMat(b, p.w, p.d), variants: [{ w: 1.6, d: 1.6 }, { w: 2.3, d: 2.3 }, { w: 3, d: 2.4 }] },
   closet: { label: 'מחסן / ארון מרפסת', cat: 'מרפסת', def: { w: 1.4, h: 2.1, d: 0.62 }, fp: p => [p.w, p.d + 0.05, 0], make: (b, it, p) => b.wardrobe(0, 0, 0, p.w, p.h, p.d), variants: [{ w: 1.0 }, { w: 1.4 }, { w: 2.0 }] }
 };
+export const ICONS = { sofa: '🛋️', armchair: '💺', coffeeTable: '☕', sideTable: '🪑', floorLamp: '💡', tvUnit: '📺', console: '🗄️', diningTable: '🍽️', desk: '💻', bed: '🛏️', nightstand: '🕯️', wardrobe: '🚪', baseRun: '🍳', upperRun: '🗄️', tall: '🚪', fridge: '🧊', island: '🍴', hood: '♨️', plant: '🪴', planter: '🌿', rug: '🟫', pendant: '🔆', sunLounger: '🏖️', kidsTable: '🧸', playHouse: '🏠', kidsMat: '🟦', closet: '📦' };
 export const CATS = ['ישיבה', 'אוכל', 'שינה', 'מטבח', 'צמחים', 'שטיחים ותאורה', 'מרפסת'];
 
 // footprint helpers
@@ -80,55 +81,48 @@ let _id = 0; const mk = (t, x, y, r, p = {}) => ({ id: 'i' + (++_id), t, x, y, r
 export function defaultItems() {
   _id = 0; const I = [];
   const a = (...x) => I.push(mk(...x));
-  // living (kept calm and open)
-  a('rug', 2.7, 5.15, S_, { w: 3.3, d: 2.5, round: null });
-  a('sofa', 2.6, 4.5, N, { w: 2.8, d: 0.98, seats: 3 });
-  a('coffeeTable', 2.65, 5.5, S_, { w: 1.25, d: 0.7, round: null });
-  a('armchair', 4.15, 5.55, W_);
-  a('tvUnit', 3.2, 7.04, S_, { w: 2.1 });
-  a('plant', 0.5, 7.0, S_, { h: 1.6, kind: 0 }); a('plant', 4.4, 7.0, S_, { h: 1.2, kind: 1 });
+  // living: calm and open, wide walking space
+  a('rug', 2.6, 5.3, S_, { w: 2.6, d: 2.2, round: null });
+  a('sofa', 2.6, 4.55, N, { w: 2.6, d: 0.95, seats: 3 });
+  a('coffeeTable', 2.6, 5.75, S_, { w: 1.1, d: 0.6, round: null });
+  a('tvUnit', 3.0, 7.04, S_, { w: 1.8 });
+  a('plant', 0.5, 7.0, S_, { h: 1.5, kind: 0 });
   // entrance
   a('console', 5.5, 5.75, W_, { w: 1.0 });
-  // dining (indoor)
-  a('diningTable', 1.4, 1.9, E, { w: 2.3, d: 0.98, nSide: 3, ends: false, wOpen: 2.3, nOpen: 3 });
-  a('pendant', 1.4, 1.9, E, { z: 1.65 }); a('rug', 1.4, 1.9, S_, { w: 2.4, d: 3.0, round: false }); a('plant', 0.5, 3.15, S_, { h: 1.5, kind: 1 });
-  // kitchen: hob next to the windows (south wall), sink under the window, island, hosting pantry
+  // dining (indoor): table for six, room around it
+  a('diningTable', 1.5, 1.9, E, { w: 1.9, d: 0.95, nSide: 2, ends: true, wOpen: 1.9, nOpen: 2 });
+  a('pendant', 1.5, 1.9, E, { z: 1.65 });
+  // kitchen: hob next to the windows, sink under the window, island pulled east to leave a wide aisle
   a('baseRun', 3.3, 0.22, N, { len: 2.0 });
   a('baseRun', 4.9, 0.22, N, { len: 1.2 });
-  a('baseRun', 6.1, 0.22, N, { len: 1.2, parts: [['hob', 0]] });
-  a('baseRun', 7.475, 0.22, N, { len: 1.55, parts: [['sink', 0]] });
-  a('hood', 6.1, 0.22, N, { w: 0.9 }); a('upperRun', 3.3, 0.22, N, { len: 1.9 });
-  a('tall', 7.1, 3.3, S_, { len: 1.8 });
-  a('island', 4.4, 2.35, N, { len: 3.4, depth: 1.0 });
-  for (const x of [3.4, 4.4, 5.4]) a('pendant', x, 2.35, S_, { z: 1.7 });
-  a('fridge', 8.93, 0.85, W_, { w: 0.9 }); a('tall', 8.93, 2.0, W_, { len: 1.4 });
-  a('plant', 2.45, 0.55, S_, { h: 1.0, kind: 1 }); a('rug', 7.0, 1.9, S_, { w: 2.0, d: 1.2, round: false });
-  // hall
-  a('rug', 9.7, 3.95, S_, { w: 5.0, d: 0.85, round: false });
+  a('baseRun', 6.135, 0.34, N, { len: 1.27, parts: [['hob', 0]] });
+  a('baseRun', 7.36, 0.22, N, { len: 1.18, parts: [['sink', 0]] });
+  a('hood', 6.135, 0.34, N, { w: 0.9 }); a('upperRun', 3.3, 0.22, N, { len: 1.9 });
+  a('island', 4.6, 2.3, N, { len: 3.0, depth: 0.95 });
+  for (const x of [4.0, 5.2]) a('pendant', x, 2.3, S_, { z: 1.7 });
+  a('fridge', 8.93, 0.9, W_, { w: 0.9 }); a('tall', 8.93, 2.0, W_, { len: 1.4 });
   // master bedroom
-  a('rug', 14.1, 5.9, S_, { w: 3.1, d: 2.7, round: null }); a('bed', 14.1, 6.18, S_, { w: 1.8, l: 2.05 });
+  a('rug', 14.1, 5.9, S_, { w: 2.6, d: 2.0, round: null }); a('bed', 14.1, 6.18, S_, { w: 1.8, l: 2.05 });
   a('nightstand', 12.95, 7.08, S_); a('nightstand', 15.2, 7.08, S_); a('wardrobe', 12.05, 7.04, S_, { w: 1.2 });
-  a('tvUnit', 13.2, 4.8, N, { w: 1.4 }); a('wardrobe', 15.15, 3.98, W_, { w: 1.0, d: 0.5 }); a('wardrobe', 14.4, 3.74, N, { w: 1.3, d: 0.5 }); a('plant', 15.1, 4.8, S_, { h: 1.2, kind: 0 });
+  a('wardrobe', 15.15, 3.98, W_, { w: 1.0, d: 0.5 });
   // bedroom 3
-  a('rug', 13.9, 1.7, S_, { w: 2.6, d: 2.6, round: null }); a('bed', 13.8, 1.95, E, { w: 1.5, l: 2.0 });
-  a('nightstand', 12.95, 1.0, E); a('nightstand', 12.95, 2.9, E); a('wardrobe', 14.6, 3.07, S_, { w: 1.6 }); a('desk', 14.3, 0.55, N, { w: 1.1, d: 0.55 }); a('plant', 15.1, 0.5, S_, { h: 1.2, kind: 0 });
+  a('rug', 13.9, 1.7, S_, { w: 2.2, d: 2.0, round: null }); a('bed', 13.8, 1.95, E, { w: 1.5, l: 2.0 });
+  a('nightstand', 12.95, 1.0, E); a('nightstand', 12.95, 2.9, E); a('wardrobe', 14.6, 3.07, S_, { w: 1.6 });
   // mamad bedroom
-  a('bed', 11.35, 1.72, W_, { w: 1.6, l: 2.05 }); a('nightstand', 12.2, 0.75, W_); a('nightstand', 12.2, 2.7, W_); a('wardrobe', 9.45, 1.9, E, { w: 2.2 });
-  a('armchair', 10.0, 0.75, E); a('rug', 11.0, 1.7, S_, { w: 2.6, d: 2.4, round: false }); a('plant', 9.5, 0.55, S_, { h: 1.0, kind: 0 });
-  // terrace: dining for 6 (opens to 8), sun loungers, kids corner vs adults corner, outdoor kitchen, storage
+  a('bed', 11.35, 1.72, W_, { w: 1.6, l: 2.05 }); a('nightstand', 12.2, 0.75, W_); a('nightstand', 12.2, 2.7, W_); a('wardrobe', 9.45, 1.9, E, { w: 2.0 });
+  a('rug', 11.0, 1.7, S_, { w: 2.2, d: 1.8, round: false });
+  // terrace: dining for 6 (opens to 8), loungers, kids corner vs adults corner, outdoor kitchen, storage
   a('diningTable', -2.1, 6.0, E, { w: 1.8, d: 0.95, nSide: 2, ends: true, ext: 0, wOpen: 2.6, nOpen: 3 });
   a('pendant', -2.1, 5.6, S_, { z: 1.75 }); a('pendant', -2.1, 6.4, S_, { z: 1.75 });
-  a('sunLounger', -3.0, 1.6, N); a('sunLounger', -1.8, 1.6, N); a('sideTable', -2.4, 0.7, S_);
-  a('kidsMat', -3.0, 10.0, S_, { w: 2.3, d: 2.3 }); a('kidsTable', -3.0, 10.0, S_); a('playHouse', -3.5, 11.0, S_);
-  a('sofa', 0.45, 9.8, W_, { w: 2.4, d: 0.95, seats: 3 }); a('coffeeTable', -0.35, 9.8, S_, { w: 0.9, d: 0.9, round: true });
-  a('armchair', -0.6, 8.65, N); a('armchair', -0.6, 10.95, S_);
+  a('sunLounger', -3.0, 1.9, N); a('sunLounger', -1.8, 1.9, N);
+  a('kidsMat', -2.7, 10.0, S_, { w: 2.3, d: 2.3 }); a('kidsTable', -2.7, 9.6, S_); a('playHouse', -3.0, 11.0, S_);
+  a('sofa', 0.45, 9.8, W_, { w: 2.4, d: 0.95, seats: 3 }); a('coffeeTable', -0.6, 9.8, S_, { w: 0.9, d: 0.9, round: true });
+  a('armchair', -0.7, 8.55, N);
   a('baseRun', 2.087, 10.55, W_, { len: 2.0, parts: [['grill', -0.45], ['sink', 0.55]] });
-  a('closet', 2.087, 8.65, W_, { w: 1.4, h: 2.1, d: 0.62 });
-  for (const y of [0.9, 2.3, 3.7, 5.1, 6.5, 8.0, 9.4, 10.8]) a('planter', -3.9, y, E, { len: 1.3 });
-  for (const x of [-3.0, -1.4]) a('planter', x, 11.5, S_, { len: 1.3 });
-  a('planter', 0.5, 11.5, S_, { len: 1.1 });
-  for (const x of [-3.4, -2.1, -0.8]) a('planter', x, 0.4, S_, { len: 1.2 });
-  a('plant', -3.7, 7.7, S_, { h: 1.8, kind: 0 }); a('plant', -0.4, 3.1, S_, { h: 1.5, kind: 1 });
+  a('closet', 1.76, 8.65, W_, { w: 1.4, h: 2.1, d: 0.62 });
+  for (const y of [1.6, 3.3, 5.0, 6.7, 8.4, 10.1]) a('planter', -3.9, y, E, { len: 1.3 });
+  for (const x of [-1.3, 0.4]) a('planter', x, 11.5, S_, { len: x < 0 ? 1.3 : 1.1 });
+  for (const x of [-3.3, -1.9]) a('planter', x, 0.4, S_, { len: 1.2 });
   return I;
 }
 export function nextId(items) { let m = 0; for (const i of items) m = Math.max(m, +i.id.slice(1) || 0); return 'i' + (m + 1); }

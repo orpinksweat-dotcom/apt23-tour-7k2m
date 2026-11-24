@@ -5,7 +5,7 @@ import { createWorld, ROOMS } from './world.js';
 import { STYLES } from './materials.js';
 import { Grid, FP, Tour } from './nav.js';
 import { createEditor } from './edit.js';
-import { TYPES, CATS } from './items.js';
+import { TYPES, CATS, ICONS } from './items.js';
 
 const $ = id => document.getElementById(id);
 const mobile = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && innerWidth < 900);
@@ -30,7 +30,7 @@ const tour = new Tour(fp, ROOMMAP);
 const orbit = new OrbitControls(camera, canvas); orbit.enabled = false; orbit.enableDamping = true; orbit.dampingFactor = 0.08;
 orbit.maxPolarAngle = Math.PI * 0.49; orbit.minDistance = 4; orbit.maxDistance = 60; orbit.screenSpacePanning = false; orbit.rotateSpeed = 0.7;
 
-const S = { mode: 'intro', style: 'C', time: 'noon', layers: { ceiling: true, walls: true, furniture: true, changes: false }, panel: null, flying: null, auto: true };
+const S = { cat: CATS[0], mode: 'intro', style: 'C', time: 'noon', layers: { ceiling: true, walls: true, furniture: true, changes: false }, panel: null, flying: null, auto: true };
 let aspect = 1;
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); aspect = w / h; camera.aspect = aspect;
@@ -97,7 +97,7 @@ function goRoom(id) {
   if (d > 14) { enterAt(r); } else fp.goto(r.pos[0], r.pos[1], r.look[0], r.look[1]);
   showRoomLabel(id);
 }
-function setModeUI(m) { S.mode = m; if (m !== 'top') editExit(); document.body.classList.toggle('touring', m === 'tour'); $('mWalk').classList.toggle('on', m === 'walk'); $('mTop').classList.toggle('on', m === 'top'); $('mTour').classList.toggle('on', m === 'tour'); document.body.classList.toggle('nojoy', m === 'top'); }
+function setModeUI(m) { S.mode = m; if (m === 'tour') editExit(); document.body.classList.toggle('touring', m === 'tour'); $('mWalk').classList.toggle('on', m === 'walk'); $('mTop').classList.toggle('on', m === 'top'); $('mTour').classList.toggle('on', m === 'tour'); document.body.classList.toggle('nojoy', m === 'top'); }
 
 // ---------- tour ----------
 const STOPS_LONG = [
@@ -137,9 +137,10 @@ const PANELS = {
   time: () => `<h4>שעה ביום</h4><div class="grid g4">${Object.entries(W.TIMES).map(([k, t]) => `<button class="chip ${S.time === k ? 'on' : ''}" data-time="${k}" style="text-align:center">${t.label}</button>`).join('')}</div><div class="note">הדגמת אור: כיוון השמש נלקח מחץ הצפון בשרטוט ואינו מדידה. בלילה נדלקים אורות הפנים.</div>`,
   tour: () => `<h4>סיור מודרך</h4><div class="grid g2"><button class="btn pri" data-act="tourLong">סיור מלא · 90 שנ׳</button><button class="btn" data-act="tourShort">סיור קצר · 45 שנ׳</button></div><div class="note">הסיור עובר מהכניסה דרך הסלון והמטבח, מרפסת הגג ומטבח החוץ, הנישה והחדרים, ומסתיים במבט־על. אפשר לעצור, לדלג ולחזור לסיור עצמי בכל רגע.</div>`,
   edit: () => `<h4>עיצוב</h4>
-    <div class="grid g2"><button class="btn" data-ed="undo">בטל</button><button class="btn" data-ed="redo">בצע שוב</button><button class="btn" data-ed="reset">חזרה למקור</button><button class="btn" data-ed="clear">התחל מאפס</button></div>
-    <div class="note">הקישו על פריט בדירה וגררו אותו. כפתורי הסיבוב, ההחלפה והמחיקה מופיעים בתחתית המסך. כל שינוי נשמר במכשיר שלכם. "חזרה למקור" מחזירה את העיצוב שהצעתי.</div>
-    ${CATS.map(c => `<h5>${c}</h5><div class="grid g3">${Object.entries(TYPES).filter(([k, t]) => t.cat === c).map(([k, t]) => `<button class="chip" data-add="${k}" style="text-align:center">${t.label}</button>`).join('')}</div>`).join('')}`,
+    <div class="grid g4 mini"><button class="chip" data-ed="undo">↶ בטל</button><button class="chip" data-ed="redo">↷ שוב</button><button class="chip" data-ed="reset">מקור</button><button class="chip" data-ed="clear">מאפס</button></div>
+    <div class="tabs">${CATS.map(c => `<button class="tab ${S.cat === c ? 'on' : ''}" data-cat="${c}">${c}</button>`).join('')}</div>
+    <div class="grid g3">${Object.entries(TYPES).filter(([k, t]) => t.cat === S.cat).map(([k, t]) => `<button class="card" data-add="${k}"><i>${ICONS[k] || '▫️'}</i><span>${t.label}</span></button>`).join('')}</div>
+    <div class="note">הקישו על פריט בדירה כדי לבחור אותו, וגררו את הידית הזהובה כדי להזיז. הסתכלות והליכה ממשיכות לעבוד כרגיל. "מקור" מחזירה את העיצוב שהצעתי, "מאפס" מרוקנת את הדירה.</div>`,
   more: () => `<h4>עוד</h4>
     <div class="row2"><span>נישת אירוח</span><div class="grid g2" style="width:220px"><button class="chip ${W.niche === 'bar' ? 'on' : ''}" data-niche="bar" style="text-align:center">בר וקפה</button><button class="chip ${W.niche === 'store' ? 'on' : ''}" data-niche="store" style="text-align:center">אחסון וסדר</button></div></div>
     <h5>שכבות</h5>
@@ -160,7 +161,7 @@ function openPanel(p) {
 }
 function closePanel() { S.panel = null; sheet.classList.remove('on'); document.querySelectorAll('#dock button').forEach(b => b.classList.remove('on')); }
 document.querySelectorAll('#dock button').forEach(b => b.onclick = () => { if (b.dataset.p === 'edit' && S.panel !== 'edit') enterEdit(); openPanel(b.dataset.p); });
-function enterEdit() { if (tour.active) tour.stop(false); if (S.mode !== 'top') setMode('top'); ed.enter(); $('editbar').classList.add('on'); }
+function enterEdit() { if (tour.active) tour.stop(false); ed.enter(); $('editbar').classList.add('on'); if (!S.editHint) { S.editHint = 1; toast('הקישו על פריט כדי לבחור, וגררו את הידית הזהובה כדי להזיז', 4500); } }
 function editExit() { if (!ed.on) return; ed.exit(); $('editbar').classList.remove('on'); $('selbar').classList.remove('on'); }
 function updateEditUI(e) {
   $('selbar').classList.toggle('on', e.on && !!e.sel); const it = e.selected();
@@ -180,6 +181,7 @@ sheet.addEventListener('click', e => {
   else if (t.dataset.layer) { const k = t.dataset.layer; S.layers[k] = !S.layers[k]; if (k === 'ceiling') applyCeiling(); else W.setLayer(k, S.layers[k]); t.classList.toggle('on', S.layers[k]); }
   else if (t.dataset.fav) { const f = favs()[+t.dataset.fav]; if (f) { fp.cancel(); fp.x = f[0]; fp.y = f[1]; fp.ty = fp.yaw = f[2]; fp.tp = fp.pitch = f[3]; if (S.mode === 'top') { setMode('walk', { room: 'lobby' }); } toast('נקודת מבט ' + (+t.dataset.fav + 1)); } }
   else if (t.dataset.ed) { const a = t.dataset.ed; if (a === 'clear' && !confirm('לרוקן את כל הפריטים ולהתחיל מאפס?')) return; ({ undo: ed.undo, redo: ed.redo, reset: ed.reset, clear: ed.clearAll })[a](); }
+  else if (t.dataset.cat) { S.cat = t.dataset.cat; sheet.innerHTML = PANELS.edit(); }
   else if (t.dataset.add) { ed.add(t.dataset.add); closePanel(); }
   else if (t.dataset.act) act(t.dataset.act);
 });
@@ -239,7 +241,7 @@ joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e)
 const joyEnd = e => { if (e.pointerId === joyId) { joyId = null; fp.joy = [0, 0]; stick.style.transform = ''; } }; joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
 canvas.addEventListener('pointerdown', e => {
   if (!$('intro').classList.contains('off')) return; closePanel();
-  if (S.mode === 'top') { if (!ed.on) tap = { x: e.clientX, y: e.clientY, t: performance.now() }; return; }
+  if (S.mode === 'top') { tap = { x: e.clientX, y: e.clientY, t: performance.now() }; return; }
   if (e.pointerType === 'mouse' && e.button !== 0) return;
   if (S.mode === 'tour' && !tour.paused) tour.stop(false);
   lookId = e.pointerId; lastP = [e.clientX, e.clientY]; tap = { x: e.clientX, y: e.clientY, t: performance.now() }; canvas.setPointerCapture(e.pointerId);
@@ -250,11 +252,11 @@ const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 
 function floorPoint(cx, cy) { const v = new THREE.Vector2(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(v, camera); const p = new THREE.Vector3(); return ray.ray.intersectPlane(plane, p) ? p : null; }
 const marker = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.22, 32), new THREE.MeshBasicMaterial({ color: '#f0d9ad', transparent: true, opacity: 0, depthTest: false })); marker.rotation.x = -Math.PI / 2; marker.renderOrder = 30; scene.add(marker); let markT = 0;
 function showMarker(x, y) { marker.position.set(x, 0.05, -y); markT = 1.2; }
-const ed = createEditor({ W, scene, app: $('app'), orbit, camera: () => camera, floorPoint: (cx, cy) => floorPoint(cx, cy), centerPoint: () => [orbit.target.x, -orbit.target.z], isTop: () => S.mode === 'top', onChange: () => { rebuildGrid(); }, onSelect: updateEditUI, toast });
+const ed = createEditor({ W, scene, app: $('app'), orbit, camera: () => camera, floorPoint: (cx, cy) => floorPoint(cx, cy), centerPoint: () => { if (S.mode === 'top') return [orbit.target.x, -orbit.target.z]; const p = floorPoint(innerWidth / 2, innerHeight * 0.62); if (p && Math.hypot(p.x - fp.x, -p.z - fp.y) < 5.5) return [p.x, -p.z]; return [fp.x - Math.sin(fp.yaw) * 2.5, fp.y + Math.cos(fp.yaw) * 2.5]; }, isTop: () => S.mode === 'top', onChange: () => { rebuildGrid(); }, onSelect: updateEditUI, toast });
 canvas.addEventListener('pointerup', e => {
   const wasLook = e.pointerId === lookId; if (wasLook) lookId = null;
   if (!tap) return; const dt = performance.now() - tap.t, dd = Math.hypot(e.clientX - tap.x, e.clientY - tap.y); const t0 = tap; tap = null;
-  if (dd > 9 || dt > 450) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return; const x = p.x, y = -p.z;
+  if (dd > 9 || dt > 450) return; if (ed.on && ed.tap(e.clientX, e.clientY)) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return; const x = p.x, y = -p.z;
   if (S.mode === 'top') { if (ed.on) return; const id = roomAt(x, y); if (id) { S.mode = 'walk'; setModeUI('walk'); applyCeiling(); orbit.enabled = false; enterAt(ROOMMAP[id]); showRoomLabel(id); } return; }
   if (grid.ok(x, y) || grid.nearest(x, y)) { const d = Math.hypot(x - fp.x, y - fp.y); if (d < 22) { const g = grid.nearest(x, y); fp.goto(...g); showMarker(g[0], g[1]); } }
 });
@@ -289,6 +291,7 @@ function frame() {
   }
   if (S.mode !== 'top' && S.mode !== 'intro') { if ((acc += dt) > 0.25) { acc = 0; showRoomLabel(roomAt(fp.x, fp.y)); updateHashSoft(); } }
   if (markT > 0) { markT -= dt; const k = Math.max(0, markT / 1.2); marker.material.opacity = k * 0.9; marker.scale.setScalar(1 + (1 - k) * 1.2); }
+  if (ed.on) ed.updateHandle();
   mT += dt; if (mT > 0.08) { mT = 0; drawMini(); }
   renderer.render(scene, camera);
   // adaptive quality

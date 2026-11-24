@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { TYPES, footprint, defaultItems, nextId } from './items.js';
 
-const KEY = 'apt23.items.v2', REV = 2, snap = v => Math.round(v / 0.05) * 0.05;
+const KEY = 'apt23.items.v3', REV = 3, snap = v => Math.round(v / 0.05) * 0.05;
 
 export function createEditor(ctx) {
   const { W, scene, app, floorPoint, centerPoint, onChange, onSelect, toast } = ctx;
@@ -68,33 +68,38 @@ export function createEditor(ctx) {
   ed.ext = () => { const it = ed.selected(); if (!it || !TYPES[it.t].ext) return; const old = it.p.ext; it.p.ext = it.p.ext ? 0 : 1; if (!valid(it) && !findSpot(it)) { it.p.ext = old; toast('אין מקום לפתוח את השולחן כאן'); return; } W.rebuildItem(it); W.placeItem(it); commit(); showHL(); toast(it.p.ext ? 'השולחן נפתח' : 'השולחן נסגר'); };
   ed.history = () => ({ undo: ed.canUndo(), redo: ed.canRedo() });
 
-  // ---- pointer drag (capture phase on #app so it runs before camera controls) ----
-  let drag = null, tap = null;
+  // ---- selection by tap, movement only through the gold handle (never fights camera gestures) ----
+  const grab = document.getElementById('grab');
   const pick = (cx, cy) => {
     const v = new THREE.Vector2(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(v, ctx.camera());
-    const hits = ray.intersectObjects(W.itemsRoot.children, true); for (const h of hits) { let o = h.object; while (o && !o.userData.itemId) o = o.parent; if (o) return o.userData.itemId; } return null;
+    const hits = ray.intersectObjects(W.itemsRoot.children, true); let flat = null;
+    for (const h of hits) { let o = h.object; while (o && !o.userData.itemId) o = o.parent; if (!o) continue; const it = W.items.find(i => i.id === o.userData.itemId); if (!it) continue; if (footprint(it).noBlock) { flat = flat || it.id; continue; } return it.id; }
+    return flat;
   };
-  app.addEventListener('pointerdown', e => {
-    if (!ed.on || !ctx.isTop() || e.target.closest('button,#sheet,#selbar,#editbar,input')) return;
-    const id = pick(e.clientX, e.clientY);
-    if (id) {
-      const it = W.items.find(i => i.id === id), p = floorPoint(e.clientX, e.clientY); if (!p) return;
-      ed.sel = id; showHL(); ui(); drag = { it, off: [it.x - p.x, it.y - p.y], moved: false, sx: e.clientX, sy: e.clientY, before: JSON.stringify(W.items) };
-      ctx.orbit.enabled = false; e.stopPropagation(); e.preventDefault();
-    } else tap = { x: e.clientX, y: e.clientY };
-  }, true);
-  window.addEventListener('pointermove', e => {
+  ed.tap = (cx, cy) => { if (!ed.on) return false; const id = pick(cx, cy); if (id) { ed.sel = id; showHL(); ui(); return true; } if (ed.sel) { ed.sel = null; showHL(); ui(); } return false; };
+  let drag = null;
+  grab.addEventListener('pointerdown', e => {
+    const it = ed.selected(); if (!it) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return;
+    drag = { it, off: [it.x - p.x, it.y - p.y], moved: false, sx: e.clientX, sy: e.clientY }; grab.setPointerCapture(e.pointerId); grab.classList.add('drag'); e.preventDefault(); e.stopPropagation();
+  });
+  grab.addEventListener('pointermove', e => {
     if (!drag) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return; const it = drag.it;
-    if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return; drag.moved = true;
+    if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 3) return; drag.moved = true;
     const nx = snap(p.x + drag.off[0]), ny = snap(p.y + drag.off[1]); const ox = it.x, oy = it.y;
     it.x = nx; it.y = ny; if (!valid(it)) { it.x = nx; it.y = oy; if (!valid(it)) { it.x = ox; it.y = ny; if (!valid(it)) { it.x = ox; it.y = oy; } } }
     W.placeItem(it); showHL();
   });
-  window.addEventListener('pointerup', e => {
-    if (drag) { const d = drag; drag = null; if (ctx.isTop()) ctx.orbit.enabled = true; if (d.moved) commit(); return; }
-    if (tap) { if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 8 && ed.on && !pick(e.clientX, e.clientY)) { ed.sel = null; showHL(); ui(); } tap = null; }
-  });
-  ed.refreshHL = showHL;
+  const end = () => { if (!drag) return; const d = drag; drag = null; grab.classList.remove('drag'); if (d.moved) commit(); };
+  grab.addEventListener('pointerup', end); grab.addEventListener('pointercancel', end);
+  const pv = new THREE.Vector3();
+  ed.updateHandle = () => {
+    const it = ed.on && ed.selected(); if (!it) { grab.classList.remove('on'); return; }
+    const f = footprint(it); pv.set(f.c[0], 0.9, -f.c[1]).project(ctx.camera());
+    if (pv.z > 1 || pv.z < -1) { grab.classList.remove('on'); return; }
+    const x = Math.max(34, Math.min(innerWidth - 34, (pv.x + 1) / 2 * innerWidth)), y = Math.max(110, Math.min(innerHeight - 150, (1 - pv.y) / 2 * innerHeight));
+    grab.style.transform = `translate(${x}px,${y}px)`; grab.classList.add('on');
+  };
+  ed.isValid = valid; ed.refreshHL = showHL;
   ed.init = () => { W.setItems(ed.load()); ed.hist = []; ed.hi = -1; commit(true); };
   return ed;
 }
