@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { PLAN } from './plan.js';
 import { createWorld, ROOMS } from './world.js';
-import { STYLES, isPhoto, setPhoto, applyPhotos } from './materials.js';
+import { STYLES, isPhoto, setPhoto, applyPhotos, FIN, OPT, setFin, resetFin, preloadAll } from './materials.js';
 import { Grid, FP, Tour } from './nav.js';
 import { createEditor } from './edit.js';
 import { TYPES, CATS, ICONS } from './items.js';
@@ -12,13 +12,13 @@ const mobile = /iPhone|iPad|Android|Mobile/i.test(navigator.userAgent) || (navig
 const canvas = $('c');
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
   if (!renderer.getContext()) throw new Error('no gl');
 } catch (e) { $('load').classList.add('off'); $('fail').classList.add('on'); $('retry').onclick = () => location.reload(); throw e; }
 canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); $('fail').classList.add('on'); $('retry').onclick = () => location.reload(); });
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
-let pr = Math.min(devicePixelRatio || 1, mobile ? 1.75 : 2); renderer.setPixelRatio(pr);
+let pr = Math.min(devicePixelRatio || 1, mobile ? 2.25 : 2); renderer.setPixelRatio(pr);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 900);
@@ -30,7 +30,7 @@ const tour = new Tour(fp, ROOMMAP);
 const orbit = new OrbitControls(camera, canvas); orbit.enabled = false; orbit.enableDamping = true; orbit.dampingFactor = 0.08;
 orbit.maxPolarAngle = Math.PI * 0.49; orbit.minDistance = 4; orbit.maxDistance = 60; orbit.screenSpacePanning = false; orbit.rotateSpeed = 0.7;
 
-const S = { cat: CATS[0], mode: 'intro', style: 'C', time: 'noon', layers: { ceiling: true, walls: true, furniture: true, changes: false }, panel: null, flying: null, auto: true };
+const S = { fin: 'floor', cat: CATS[0], mode: 'intro', style: 'C', time: 'noon', layers: { ceiling: true, walls: true, furniture: true, changes: false }, panel: null, flying: null, auto: true };
 let aspect = 1;
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); aspect = w / h; camera.aspect = aspect;
@@ -136,6 +136,13 @@ const PANELS = {
   style: () => `<h4>סגנון עיצוב</h4><div class="grid g3">${Object.values(STYLES).sort((x, y) => x.key.localeCompare(y.key)).map(s => `<button class="style-card ${S.style === s.key ? 'on' : ''}" data-style="${s.key}"><div class="sw" style="background:linear-gradient(135deg,${s.floorPub} 0 34%,${s.cab} 34% 62%,${s.sofa} 62% 82%,${s.accent} 82%)"></div><b>${s.key} · ${s.name}</b><small>${s.sub}</small></button>`).join('')}</div><div class="note">אותה דירה ואותה נקודת מצלמה. משתנים החומרים, הריהוט והאווירה. סגנון C הוא ברירת המחדל.</div>`,
   time: () => `<h4>שעה ביום</h4><div class="grid g4">${Object.entries(W.TIMES).map(([k, t]) => `<button class="chip ${S.time === k ? 'on' : ''}" data-time="${k}" style="text-align:center">${t.label}</button>`).join('')}</div><div class="note">הדגמת אור: כיוון השמש נלקח מחץ הצפון בשרטוט ואינו מדידה. בלילה נדלקים אורות הפנים.</div>`,
   tour: () => `<h4>סיור מודרך</h4><div class="grid g2"><button class="btn pri" data-act="tourLong">סיור מלא · 90 שנ׳</button><button class="btn" data-act="tourShort">סיור קצר · 45 שנ׳</button></div><div class="note">הסיור עובר מהכניסה דרך הסלון והמטבח, מרפסת הגג ומטבח החוץ, הנישה והחדרים, ומסתיים במבט־על. אפשר לעצור, לדלג ולחזור לסיור עצמי בכל רגע.</div>`,
+  finish: () => {
+    const tabs = [['floor', 'ריצוף ראשי'], ['wood', 'פרקט חדרים'], ['bath', 'רחצה'], ['wall', 'קירות'], ['cab', 'ארונות'], ['counter', 'משטחים'], ['sofa', 'ספות'], ['woodT', 'עץ']], t = S.fin, list = OPT[t];
+    const sizes = (t === 'floor' || t === 'wood' || t === 'bath') ? `<div class="sizes"><span>גודל ריצוף</span>${[['0.6', 'קטן'], ['1', 'בינוני'], ['1.6', 'גדול']].map(([v, l]) => `<button class="tab ${+v === FIN.size ? 'on' : ''}" data-finsize="${v}">${l}</button>`).join('')}</div>` : '';
+    return `<div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${t === k ? 'on' : ''}" data-fintab="${k}">${l}</button>`).join('')}</div>
+    <div class="swrow">${list.map(o => `<button class="swb ${FIN[t] === o.k ? 'on' : ''}" data-fin="${t}:${o.k}"><i style="background:${o.sw || 'linear-gradient(135deg,#d6cdbd,#a8927a)'}"></i><span>${o.label}</span></button>`).join('')}</div>${sizes}
+    <div class="sizes"><button class="tab" data-finreset="1">אפס גימורים לסגנון</button></div>`;
+  },
   edit: () => `<h4>עיצוב</h4>
     <div class="grid g4 mini"><button class="chip" data-ed="undo">↶ בטל</button><button class="chip" data-ed="redo">↷ שוב</button><button class="chip" data-ed="reset">מקור</button><button class="chip" data-ed="clear">מאפס</button></div>
     <div class="tabs">${CATS.map(c => `<button class="tab ${S.cat === c ? 'on' : ''}" data-cat="${c}">${c}</button>`).join('')}</div>
@@ -157,19 +164,23 @@ const PANELS = {
 };
 function favs() { try { return JSON.parse(localStorage.getItem('apt23favs') || '[]'); } catch { return []; } }
 function openPanel(p) {
-  if (S.panel === p) return closePanel(); S.panel = p; sheet.innerHTML = PANELS[p](); sheet.classList.add('on'); sheet.scrollTop = 0;
+  if (S.panel === p) return closePanel(); S.panel = p; if (p === 'finish') preloadAll(); sheet.innerHTML = PANELS[p](); sheet.classList.toggle('compact', p === 'finish'); sheet.classList.add('on'); sheet.scrollTop = 0;
   document.querySelectorAll('#dock button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
   $('roomlbl').classList.remove('on');
 }
-function closePanel() { S.panel = null; sheet.classList.remove('on'); document.querySelectorAll('#dock button').forEach(b => b.classList.remove('on')); }
+function closePanel() { S.panel = null; sheet.classList.remove('on'); sheet.classList.remove('compact'); document.querySelectorAll('#dock button').forEach(b => b.classList.remove('on')); }
 document.querySelectorAll('#dock button').forEach(b => b.onclick = () => { if (b.dataset.p === 'edit' && S.panel !== 'edit') enterEdit(); openPanel(b.dataset.p); });
 function enterEdit() { if (tour.active) tour.stop(false); ed.enter(); $('editbar').classList.add('on'); if (!S.editHint) { S.editHint = 1; toast('הקישו על פריט כדי לבחור, וגררו את הידית הזהובה כדי להזיז', 4500); } }
 function editExit() { if (!ed.on) return; ed.exit(); $('editbar').classList.remove('on'); $('selbar').classList.remove('on'); }
 function updateEditUI(e) {
   $('selbar').classList.toggle('on', e.on && !!e.sel); const it = e.selected();
   $('sbExt').style.display = it && TYPES[it.t].ext ? '' : 'none'; $('sbSwap').style.display = it && TYPES[it.t].variants ? '' : 'none';
+  const SWC = { fab: ['#d3c6b0', '#b9b7b1', '#ece5d8', '#a9b59a', '#b9785a', '#47556b', '#55565a', '#8a8f66'], wood: ['#d8b88a', '#c08e58', '#8a5a36', '#5a3d2b', '#b9b2a6', '#2f2a26'], cab: ['#f1efe9', '#cfc7ba', '#9fae92', '#7f8f6c', '#3d4a5e', '#3a3b3d', '#b8745a', '#c8a674'] };
+  const KIND = { sofa: 'fab', armchair: 'fab', bed: 'fab', wardrobe: 'cab', tall: 'cab', closet: 'cab', baseRun: 'cab', upperRun: 'cab', island: 'cab', diningTable: 'wood', desk: 'wood', console: 'wood', nightstand: 'wood', tvUnit: 'wood', sideTable: 'wood', coffeeTable: 'wood' };
+  const kind = it && KIND[it.t]; $('sbSw').innerHTML = kind ? `<button class="sw0 ${!it.p.col ? 'on' : ''}" data-col="">צבע אוטומטי</button>` + SWC[kind].map(c => `<button class="swc ${it.p.col === c ? 'on' : ''}" data-col="${c}" style="background:${c}" aria-label="צבע"></button>`).join('') : '';
   $('ebUndo').disabled = !e.canUndo(); $('ebRedo').disabled = !e.canRedo(); $('sbName').textContent = it ? TYPES[it.t].label : '';
 }
+$('sbSw').onclick = e => { const b = e.target.closest('[data-col]'); if (b) ed.setColor(b.dataset.col || null); };
 $('ebUndo').onclick = () => ed.undo(); $('ebRedo').onclick = () => ed.redo(); $('ebOrig').onclick = () => { if (confirm('לחזור לעיצוב המקורי שהצעתי? השינויים שלך יימחקו (אפשר לבטל).')) ed.reset(); };
 $('ebAdd').onclick = () => openPanel('edit'); $('ebDone').onclick = () => { editExit(); closePanel(); toast('העיצוב נשמר'); };
 $('sbL').onclick = () => ed.rot(-90); $('sbR').onclick = () => ed.rot(90); $('sbL15').onclick = () => ed.rot(-15); $('sbR15').onclick = () => ed.rot(15);
@@ -184,6 +195,10 @@ sheet.addEventListener('click', e => {
   else if (t.dataset.layer) { const k = t.dataset.layer; S.layers[k] = !S.layers[k]; if (k === 'ceiling') applyCeiling(); else W.setLayer(k, S.layers[k]); t.classList.toggle('on', S.layers[k]); }
   else if (t.dataset.fav) { const f = favs()[+t.dataset.fav]; if (f) { fp.cancel(); fp.x = f[0]; fp.y = f[1]; fp.ty = fp.yaw = f[2]; fp.tp = fp.pitch = f[3]; if (S.mode === 'top') { setMode('walk', { room: 'lobby' }); } toast('נקודת מבט ' + (+t.dataset.fav + 1)); } }
   else if (t.dataset.ed) { const a = t.dataset.ed; if (a === 'clear' && !confirm('לרוקן את כל הפריטים ולהתחיל מאפס?')) return; ({ undo: ed.undo, redo: ed.redo, reset: ed.reset, clear: ed.clearAll })[a](); }
+  else if (t.dataset.fintab) { S.fin = t.dataset.fintab; sheet.innerHTML = PANELS.finish(); }
+  else if (t.dataset.fin) { const [k, v] = t.dataset.fin.split(':'); setFin(k, v); sheet.querySelectorAll('.swb').forEach(b => b.classList.toggle('on', b === t)); }
+  else if (t.dataset.finsize) { setFin('size', +t.dataset.finsize); sheet.querySelectorAll('[data-finsize]').forEach(b => b.classList.toggle('on', b === t)); }
+  else if (t.dataset.finreset) { resetFin(); sheet.innerHTML = PANELS.finish(); toast('הגימורים חזרו לסגנון'); }
   else if (t.dataset.cat) { S.cat = t.dataset.cat; sheet.innerHTML = PANELS.edit(); }
   else if (t.dataset.add) { ed.add(t.dataset.add); closePanel(); }
   else if (t.dataset.act) act(t.dataset.act);

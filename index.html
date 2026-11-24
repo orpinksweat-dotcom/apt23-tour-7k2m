@@ -138,6 +138,14 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radiu
 #selbar .r{display:flex;flex-wrap:wrap;gap:6px}
 #selbar button{padding:10px 12px;border-radius:13px;font-size:var(--t2);background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line);transition:transform .2s var(--ease)}
 #selbar button:active{transform:scale(.95)}#selbar .del{color:#ffb3a6}
+.swrow{display:flex;gap:10px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.swrow::-webkit-scrollbar{display:none}
+.swb{flex:none;width:70px;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:var(--t1);color:var(--mut);transition:color .2s}
+.swb i{width:54px;height:54px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.14),0 8px 16px -8px rgba(0,0,0,.7);transition:box-shadow .25s var(--ease),transform .25s var(--ease)}
+.swb:active i{transform:scale(.92)}.swb.on{color:var(--gold2)}.swb.on i{box-shadow:0 0 0 3px var(--gold2),0 8px 16px -8px rgba(0,0,0,.7)}
+.sizes{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:var(--t1);color:var(--mut)}.sizes span{margin-left:4px}
+.sws{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 4px 8px}.swc{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.2);transition:transform .2s var(--ease)}.swc:active{transform:scale(.9)}.swc.on{box-shadow:0 0 0 3px var(--gold2)}
+.sw0{padding:6px 11px;font-size:var(--t1);border-radius:99px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line)}.sw0.on{color:var(--gold2);box-shadow:inset 0 0 0 1px rgba(240,217,173,.6)}
+#sheet.compact{max-height:none;padding:12px 14px 12px;bottom:calc(var(--sa) + 90px)}
 body.pointer #joy{display:none}
 #grab{position:absolute;left:0;top:0;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;display:none;place-items:center;background:radial-gradient(circle at 35% 30%,#f6e3bd,#c99f5e);box-shadow:0 0 0 7px rgba(240,217,173,.28),0 14px 30px -8px rgba(0,0,0,.7);touch-action:none;z-index:4;transition:box-shadow .2s var(--ease)}
 #grab.on{display:grid}#grab.drag{box-shadow:0 0 0 12px rgba(240,217,173,.38),0 18px 36px -8px rgba(0,0,0,.7)}
@@ -149,7 +157,7 @@ body.pointer #joy{display:none}
 .card:active{transform:scale(.95);background:rgba(220,185,126,.16)}
 .card i{font-style:normal;font-size:30px;line-height:1}.card span{font-size:var(--t1);text-align:center;color:var(--ink)}
 .mini .chip{min-height:44px;text-align:center;padding:10px 4px;font-size:var(--t1)}
-@media (max-width:640px){#modes{top:calc(var(--st) + 80px)}#tourbar{top:calc(var(--st) + 80px)}#mini{width:112px;height:72px}}
+@media (max-width:640px){#modes{top:calc(var(--st) + 90px)}#tourbar{top:calc(var(--st) + 90px)}#mini{width:108px;height:64px}#editbar{top:calc(var(--st) + 142px)}}
 body.touring #modes{opacity:0;pointer-events:none}
 @media (max-width:420px){#dock button{width:52px}#modes button{padding:9px 12px}}
 @media (orientation:landscape) and (max-height:520px){
@@ -205,13 +213,13 @@ body.touring #modes{opacity:0;pointer-events:none}
     <div id="joy"><i></i></div>
     <button id="grab" aria-label="גרור להזזה"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
     <div id="editbar" class="glass"><button id="ebUndo" aria-label="בטל">בטל</button><button id="ebRedo" aria-label="בצע שוב">בצע שוב</button><button id="ebAdd">הוסף</button><button id="ebOrig">מקור</button><button id="ebDone" class="done">סיום</button></div>
-    <div id="selbar" class="glass"><b id="sbName"></b><div class="r"><button id="sbL" aria-label="סובב 90 שמאלה">⟲ 90°</button><button id="sbL15">‹ 15°</button><button id="sbR15">15° ›</button><button id="sbR" aria-label="סובב 90 ימינה">⟳ 90°</button><button id="sbSwap">החלף</button><button id="sbExt">פתח / סגור</button><button id="sbDup">שכפל</button><button id="sbDel" class="del">מחק</button></div></div>
+    <div id="selbar" class="glass"><b id="sbName"></b><div class="sws" id="sbSw"></div><div class="r"><button id="sbL" aria-label="סובב 90 שמאלה">⟲ 90°</button><button id="sbL15">‹ 15°</button><button id="sbR15">15° ›</button><button id="sbR" aria-label="סובב 90 ימינה">⟳ 90°</button><button id="sbSwap">החלף</button><button id="sbExt">פתח / סגור</button><button id="sbDup">שכפל</button><button id="sbDel" class="del">מחק</button></div></div>
     <div id="sheet" class="glass"></div>
     <div id="dock" class="glass">
       <button data-p="rooms"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>חדרים</button>
       <button data-p="style"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.5-2-.6-1.3.2-2.5 1.6-2.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="14.5" cy="7" r="1"/></svg>סגנון</button>
       <button data-p="time"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>שעה</button>
-      <button data-p="tour"><svg viewBox="0 0 24 24"><path d="M5 4v17M5 5h11l-2 4 2 4H5"/></svg>סיור</button>
+      <button data-p="finish"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M13 20l7-7M16.5 20l3.5-3.5"/></svg>גימורים</button>
       <button data-p="edit"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11a2.1 2.1 0 0 0-3-3L5 16zM14 7l3 3"/></svg>עיצוב</button>
       <button data-p="more"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>עוד</button>
     </div>

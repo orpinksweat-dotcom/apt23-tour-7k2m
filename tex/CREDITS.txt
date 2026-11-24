@@ -1,3 +1,4 @@
 Photographic textures from Poly Haven (https://polyhaven.com), CC0 / public domain:
 laminate_floor_02, marble_01, beige_wall_001, rough_linen, oak_veneer_01, wood_floor_deck.
 Resized to 768px for the web.
+herringbone_parquet, terrazzo_tiles (desaturated).

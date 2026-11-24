@@ -65,6 +65,7 @@ export function createEditor(ctx) {
     if (!valid(it) && !findSpot(it)) { it.p = JSON.parse(old); it.v = ov; toast('הגרסה הבאה לא נכנסת כאן'); return; }
     W.rebuildItem(it); W.placeItem(it); commit(); showHL();
   };
+  ed.setColor = (col) => { const it = ed.selected(); if (!it) return; if (col) it.p.col = col; else delete it.p.col; W.rebuildItem(it); W.placeItem(it); commit(); showHL(); };
   ed.ext = () => { const it = ed.selected(); if (!it || !TYPES[it.t].ext) return; const old = it.p.ext; it.p.ext = it.p.ext ? 0 : 1; if (!valid(it) && !findSpot(it)) { it.p.ext = old; toast('אין מקום לפתוח את השולחן כאן'); return; } W.rebuildItem(it); W.placeItem(it); commit(); showHL(); toast(it.p.ext ? 'השולחן נפתח' : 'השולחן נסגר'); };
   ed.history = () => ({ undo: ed.canUndo(), redo: ed.canRedo() });
 

@@ -159,7 +159,6 @@ export function initMaterials() {
 }
 
 export function finishMaterials() {
-  const FLAT = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1); FLAT.needsUpdate = true;
   for (const k of ['floorWood', 'floorPub', 'tile', 'wall', 'ceiling', 'deck', 'sofa', 'cushion', 'bed', 'bedAcc', 'rug', 'woodF', 'woodL', 'cab']) { M[k].normalMap = FLAT; M[k].normalScale.set(0.5, 0.5); }
   for (const k of ['bed', 'bedAcc', 'cushion']) { }
   M.floorPub.clearcoat = 0.12; M.floorPub.clearcoatRoughness = 0.25; M.tile.clearcoat = 0.25; M.tile.clearcoatRoughness = 0.15;
@@ -172,18 +171,18 @@ export function applyStyle(key) {
   const S = STYLES[key];
   const set = (m, t, c) => { m.map = t; m.color.set(c ? c : '#ffffff'); m.needsUpdate = true; };
   Object.values(tex).forEach(t => t.dispose && t.dispose());
-  tex.plaster = genPlaster(S.wall); tex.ceil = genPlaster(S.ceiling); tex.wallWet = genTile(S.wallWet);
+  tex.plaster = genPlaster('#ffffff'); tex.ceil = genPlaster('#ffffff'); tex.wallWet = genTile(S.wallWet);
   tex.stone = genStone(S.floorPub, S.veins ?? 0.6);
   tex.wood = genWood(S.floorWood, key === 'A' || key === 'D' ? .26 : .18); tex.tile = genStone(S.tile, 0.2);
   tex.deck = genDeck(S.deck); tex.cabw = genWood(S.cab, 0.3); tex.counter = genStone(S.counter, (S.veins ?? 0.6) * 0.7);
   tex.fab = genFabric(S.sofa); tex.rug = genFabric(S.rug); tex.woodF = genWood(S.woodF, .3); tex.woodL = genWood(S.woodL, .3);
-  set(M.wall, tex.plaster); set(M.ceiling, tex.ceil); set(M.wallWet, tex.wallWet);
+  set(M.wall, tex.plaster); set(M.ceiling, tex.ceil); set(M.wallWet, tex.wallWet); M.wall.color.set(S.wall); M.ceiling.color.set(S.ceiling);
   set(M.floorPub, tex.stone); set(M.floorWood, tex.wood); set(M.tile, tex.tile);
   set(M.deck, tex.deck); set(M.counter, tex.counter);
   tex.art = genArt(shade(S.wall, -0.04), S.accent, S.cushion); M.art.map = tex.art; M.art.needsUpdate = true;
   // cabinets: oak for B, mix in C, matte stone-grey in A
-  if (S.cabPaint) set(M.cab, null, S.cab); else set(M.cab, tex.cabw);
-  M.cabTall.map = null; M.cabTall.color.set(S.cabTall); M.cabTall.needsUpdate = true;
+  if (S.cabPaint) set(M.cab, WHITE, S.cab); else set(M.cab, tex.cabw);
+  M.cabTall.map = WHITE; M.cabTall.color.set(S.cabTall); M.cabTall.needsUpdate = true;
   M.metal.color.set(S.metal); M.brass.color.set(S.brass);
   set(M.sofa, tex.fab, S.sofa); M.sofa.color.set('#ffffff'); tex.fab.needsUpdate = true;
   M.cushion.color.set(S.cushion); M.cushion.map = tex.rug; M.rug.color.set(S.rug); M.rug.map = tex.rug; M.rug.needsUpdate = true;
@@ -195,7 +194,7 @@ export function applyStyle(key) {
   bump(M.floorWood, tex.wood, 0.9); bump(M.floorPub, tex.stone, 0.7); bump(M.tile, tex.tile, 0.5); bump(M.wall, tex.plaster, 0.35); bump(M.ceiling, tex.ceil, 0.25);
   bump(M.deck, tex.deck, 1.1); bump(M.counter, tex.counter, 0.2); bump(M.sofa, tex.fab, 1.2); bump(M.woodF, tex.woodF, 0.8); bump(M.woodL, tex.woodL, 0.8); bump(M.rug, tex.rug, 1.4);
   bump(M.cab, tex.cabw, S.cabPaint ? 0 : 0.7);
-  applyPhotos(S);
+  CURKEY = key; applyPhotos(S); applyFinishes(S);
   return S;
 }
 
@@ -215,12 +214,15 @@ export function worldUV(geom, mesh, size = 1.2) {
 
 
 // ---- photographic CC0 textures (Poly Haven), loaded in the background; procedural ones stay as fallback ----
-let PHOTO = false; try { PHOTO = localStorage.getItem('apt23.photo') === '1'; } catch { }
+let PHOTO = true; try { if (localStorage.getItem('apt23.photo') === '0') PHOTO = false; } catch { }
+let CURKEY = 'C';
+export const WHITE = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); WHITE.needsUpdate = true; WHITE.colorSpace = THREE.SRGBColorSpace;
+const FLAT = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1); FLAT.needsUpdate = true;
 export const isPhoto = () => PHOTO;
 export function setPhoto(v) { PHOTO = v; try { localStorage.setItem('apt23.photo', v ? '1' : '0'); } catch { } }
 const TEXLOADER = new THREE.TextureLoader(); const TCACHE = new Map(), RCACHE = new Map(); let CUR = null, PT = 0;
 function photo(name, srgb) {
-  if (!TCACHE.has(name)) { const e = { ready: false, t: null }; e.t = TEXLOADER.load('tex/' + name, () => { e.ready = true; clearTimeout(PT); PT = setTimeout(() => CUR && applyPhotos(CUR), 400); }, undefined, () => { });
+  if (!TCACHE.has(name)) { const e = { ready: false, t: null }; e.t = TEXLOADER.load('tex/' + name, () => { e.ready = true; clearTimeout(PT); PT = setTimeout(() => { if (CUR) { applyPhotos(CUR); applyFinishes(CUR); } }, 350); }, undefined, () => { });
     e.t.wrapS = e.t.wrapT = THREE.RepeatWrapping; e.t.anisotropy = 8; if (srgb) e.t.colorSpace = THREE.SRGBColorSpace; TCACHE.set(name, e); }
   return TCACHE.get(name);
 }
@@ -238,15 +240,76 @@ function usePhoto(m, base, procSize, photoSize, o = {}) {
 export function applyPhotos(S) {
   CUR = S; if (!PHOTO) return;
   usePhoto(M.floorWood, 'floorWood', 1.2, 1.9, { color: S.floorWood, k: 0.55, gain: 1.3 });
-  usePhoto(M.floorPub, 'stone', 1.6, 2.0, { color: S.floorPub, k: 0.5, gain: 1.25, ns: 0.6 });
+  usePhoto(M.floorPub, 'stone', 1.6, 2.0, { color: S.floorPub, k: 0.45, gain: 1.1, ns: 0.6 });
   usePhoto(M.tile, 'stone', 0.8, 1.4, { color: S.tile, k: 0.45, gain: 1.3, ns: 0.6 });
   usePhoto(M.woodL, 'woodL', 0.8, 1.0, { color: S.woodL, k: 0.6, gain: 1.1 });
   usePhoto(M.woodF, 'woodL', 0.8, 1.0, { color: S.woodF, k: 0.85, gain: 1.0 });
   if (!S.cabPaint) usePhoto(M.cab, 'woodL', 1.0, 1.0, { color: S.cab, k: 0.55, gain: 1.15 });
   usePhoto(M.deck, 'deck', 1.0, 1.4, { color: S.deck, k: 0.6, gain: 1.25 });
-  usePhoto(M.sofa, 'fabric', 0.3, 0.4, { color: S.sofa, k: 0.7, gain: 1.8, ns: 1.0 });
-  usePhoto(M.cushion, 'fabric', 0.3, 0.4, { color: S.cushion, k: 0.85, gain: 1.7, ns: 1.0 });
+  usePhoto(M.sofa, 'fabric', 0.3, 0.4, { color: S.sofa, k: 0.75, gain: 1.45, ns: 1.0 });
+  usePhoto(M.cushion, 'fabric', 0.3, 0.4, { color: S.cushion, k: 0.85, gain: 1.4, ns: 1.0 });
   usePhoto(M.rug, 'fabric', 0.5, 0.5, { color: S.rug, k: 0.7, gain: 1.8, ns: 1.2 });
   usePhoto(M.bed, 'fabric', 0.3, 0.4, { ns: 0.9 }); usePhoto(M.bedAcc, 'fabric', 0.3, 0.4, { ns: 0.9 });
   usePhoto(M.wall, 'wall', 1.6, 1.5, { ns: 0.35 }); usePhoto(M.ceiling, 'wall', 1.6, 1.5, { ns: 0.25 });
 }
+
+
+// ================= finishes: instant, user-chosen surfaces =================
+export const FIN = { size: 1, floor: 'auto', wood: 'auto', bath: 'auto', wall: 'auto', cab: 'auto', counter: 'auto', sofa: 'auto', woodT: 'auto' };
+try { Object.assign(FIN, JSON.parse(localStorage.getItem('apt23.fin') || '{}')); } catch { }
+const saveFin = () => { try { localStorage.setItem('apt23.fin', JSON.stringify(FIN)); } catch { } };
+const O = (k, label, sw, o = {}) => ({ k, label, sw, ...o });
+const AUTO = O('auto', 'לפי הסגנון', null);
+const FLOORS = {
+  travertine: O('travertine', 'אבן טרוורטין', '#d9c9a6', { tex: 'stone', size: 2.0, gain: 1.1 }),
+  porcelain: O('porcelain', 'פורצלן בהיר', '#e6e3dc', { proc: 'porc', tint: '#eeebe4' }),
+  conc: O('conc', 'בטון מוחלק', '#b9b8b4', { proc: 'conc', tint: '#cfcec9' }),
+  terrazzo: O('terrazzo', 'טרצו', '#cdbfae', { tex: 'terrazzo', size: 1.4, gain: 1.1 }),
+  oak: O('oak', 'פרקט אלון', '#c79d6a', { tex: 'floorWood', size: 1.9, gain: 1.35 }),
+  oakwarm: O('oakwarm', 'אלון חם', '#b5783f', { tex: 'floorWood', size: 1.9, tint: '#f0b277', gain: 1.3 }),
+  herring: O('herring', 'פרקט דגים', '#b8885a', { tex: 'herring', size: 1.4, gain: 1.15 }),
+  walnut: O('walnut', 'פרקט אגוז', '#6d4c36', { tex: 'floorWood', size: 1.9, tint: '#8a6248', gain: 1.15 }),
+  ash: O('ash', 'אפור בהיר', '#aaa7a1', { tex: 'floorWood', size: 1.9, tint: '#b9b6b0', gain: 1.4 })
+};
+const PAINT = (list) => list.map(([k, l, c]) => O(k, l, c, { paint: c }));
+export const OPT = {
+  floor: [AUTO, FLOORS.travertine, FLOORS.porcelain, FLOORS.conc, FLOORS.terrazzo, FLOORS.oak, FLOORS.herring, FLOORS.walnut],
+  wood: [AUTO, FLOORS.oak, FLOORS.oakwarm, FLOORS.herring, FLOORS.walnut, FLOORS.ash],
+  bath: [AUTO, FLOORS.travertine, FLOORS.porcelain, FLOORS.terrazzo, FLOORS.conc],
+  wall: [AUTO, ...PAINT([['white', 'לבן', '#f4f1ea'], ['cream', 'שמנת', '#eadfcb'], ['greige', 'גריז׳', '#d8cdbd'], ['sand', 'חול', '#d9c3a0'], ['sage', 'מרווה', '#b8c2a8'], ['blue', 'תכלת אבק', '#b9c6d2'], ['clay', 'חימר', '#d1a58a'], ['graphite', 'גרפיט', '#6d6e70']])],
+  cab: [AUTO, O('oak', 'אלון', '#c9a06a', { wood: '#f0cf9f' }), O('walnut', 'אגוז', '#6d4c36', { wood: '#8f6a50' }), ...PAINT([['white', 'לבן', '#f1efe9'], ['greige', 'גריז׳', '#cfc7ba'], ['sage', 'מרווה', '#9fae92'], ['olive', 'זית', '#7f8f6c'], ['navy', 'כחול כהה', '#3d4a5e'], ['charcoal', 'פחם', '#3a3b3d'], ['clay', 'חימר', '#b8745a']])],
+  counter: [AUTO, O('quartz', 'קוורץ לבן', '#efece6', { proc: 'quartz', tint: '#f2efe9' }), O('travertine', 'טרוורטין', '#d9c9a6', { tex: 'stone', size: 1.6, gain: 1.15 }), O('terrazzo', 'טרצו', '#cdbfae', { tex: 'terrazzo', size: 1.2, gain: 1.1 }), O('black', 'גרניט שחור', '#2b2c2e', { plain: '#2f3033' })],
+  sofa: [AUTO, ...PAINT([['sand', 'חול', '#d3c6b0'], ['grey', 'אפור', '#b9b7b1'], ['cream', 'שמנת', '#ece5d8'], ['sage', 'מרווה', '#a9b59a'], ['clay', 'חימר', '#b9785a'], ['navy', 'כחול', '#47556b'], ['charcoal', 'פחם', '#55565a'], ['olive', 'זית', '#8a8f66']])],
+  woodT: [AUTO, ...PAINT([['oak', 'אלון בהיר', '#d8b88a'], ['honey', 'דבש', '#c08e58'], ['walnut', 'אגוז', '#8a5a36'], ['dark', 'אגוז כהה', '#5a3d2b'], ['ash', 'אפר', '#b9b2a6'], ['black', 'שחור', '#2f2a26']])]
+};
+const PROC = {};
+function procTex(kind, rep) {
+  const key = kind + '@' + rep;
+  if (!PROC[key]) { const t = kind === 'porc' ? genStone('#f4f2ec', 0.05) : kind === 'conc' ? genStone('#d3d2ce', 0.18) : genStone('#f6f4ee', 0.5); t.repeat.set(rep, rep); PROC[key] = t; }
+  return PROC[key];
+}
+function setSurface(m, o, procSize, size) {
+  if (o.tex) {
+    const rep = procSize / (o.size * size), d = tiled(o.tex + '_diff.jpg', true, rep), n = tiled(o.tex + '_nor.jpg', false, rep);
+    if (d) { m.map = d; m.color.set(o.tint || '#ffffff').multiplyScalar(o.gain || 1); } if (n) { m.normalMap = n; m.normalScale.set(0.8, 0.8); m.bumpScale = 0; }
+  } else if (o.proc) { m.map = procTex(o.proc, 1 / size); m.color.set(o.tint || '#ffffff'); m.bumpScale = 0.25; m.normalMap = FLAT; }
+}
+export function applyFinishes(S) {
+  const f = FIN, find = (l, k) => OPT[l].find(o => o.k === k); let o;
+  if ((o = find('floor', f.floor)) && o.k !== 'auto') setSurface(M.floorPub, o, 1.6, f.size);
+  if ((o = find('wood', f.wood)) && o.k !== 'auto') setSurface(M.floorWood, o, 1.2, f.size);
+  if ((o = find('bath', f.bath)) && o.k !== 'auto') setSurface(M.tile, o, 0.8, f.size);
+  if ((o = find('wall', f.wall)) && o.paint) M.wall.color.set(o.paint);
+  if ((o = find('cab', f.cab)) && o.k !== 'auto') {
+    for (const m of [M.cab, M.cabTall]) {
+      if (o.wood) { const d = tiled('woodL_diff.jpg', true, 1.0), n = tiled('woodL_nor.jpg', false, 1.0); if (d) { m.map = d; m.color.set(o.wood); } if (n) { m.normalMap = n; m.bumpScale = 0; } }
+      else { m.map = WHITE; m.color.set(o.paint); m.bumpScale = 0; }
+    }
+  }
+  if ((o = find('counter', f.counter)) && o.k !== 'auto') { if (o.plain) { M.counter.map = WHITE; M.counter.color.set(o.plain); } else setSurface(M.counter, o, 1.6, 1); }
+  if ((o = find('sofa', f.sofa)) && o.paint) { const g = (PHOTO && tiled('fabric_diff.jpg', true, 2)) ? 1.45 : 1; M.sofa.color.copy(tintOf(o.paint, 0.9, g)); M.cushion.color.copy(tintOf(shade(o.paint, -0.12), 0.9, g * 0.95)); }
+  if ((o = find('woodT', f.woodT)) && o.paint) { M.woodL.color.copy(tintOf(o.paint, 0.7, 1.15)); M.woodF.color.copy(tintOf(shade(o.paint, -0.14), 0.8, 1.05)); }
+}
+export function setFin(key, val) { FIN[key] = val; saveFin(); applyStyle(CURKEY); }
+export function resetFin() { Object.assign(FIN, { size: 1, floor: 'auto', wood: 'auto', bath: 'auto', wall: 'auto', cab: 'auto', counter: 'auto', sofa: 'auto', woodT: 'auto' }); saveFin(); applyStyle(CURKEY); }
+export function preloadAll() { for (const n of ['stone', 'terrazzo', 'floorWood', 'herring', 'woodL', 'fabric', 'deck']) { photo(n + '_diff.jpg', true); photo(n + '_nor.jpg', false); } }

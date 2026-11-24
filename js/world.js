@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from '../vendor/BufferGeometryUtils.js';
 import { RectAreaLightUniformsLib } from '../vendor/RectAreaLightUniformsLib.js';
 import { PLAN } from './plan.js';
-import { M, initMaterials, finishMaterials, applyStyle, worldUV, STYLES } from './materials.js';
+import { M, initMaterials, finishMaterials, applyStyle, worldUV, STYLES, WHITE } from './materials.js';
 import { Builder } from './furniture.js';
 import { TYPES, footprint, defaultItems } from './items.js';
 let initialItems = defaultItems; export function setInitialItems(f) { initialItems = f; }
@@ -143,8 +143,11 @@ export function createWorld(scene, renderer, mobile) {
   W.apt = apt; W.terrace = [tw, tn];
   { const pos = [], col = [], idx = [], T = 0.55, Y = 0.009, a0 = 0.42; let vi = 0;
     const q = (ax, ay, bx, by, cx, cy, dx, dy) => { for (const [x, y, al] of [[ax, ay, a0], [bx, by, a0], [cx, cy, 0], [dx, dy, 0]]) { pos.push(x, Y, -y); col.push(0, 0, 0, al); } idx.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2); vi += 4; };
+    const vq = (ax, ay, bx, by, dx, dy, h0, h1, a0v, a1v) => { for (const [x, y, hh, al] of [[ax + dx, ay + dy, h0, a0v], [bx + dx, by + dy, h0, a0v], [ax + dx, ay + dy, h1, a1v], [bx + dx, by + dy, h1, a1v]]) { pos.push(x, hh, -y); col.push(0, 0, 0, al); } idx.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2); vi += 4; };
+    const side = (ax, ay, bx, by, dx, dy) => { vq(ax, ay, bx, by, dx, dy, 0.0, 0.75, 0.3, 0, ); vq(ax, ay, bx, by, dx, dy, H, H - 0.6, 0.22, 0); };
     for (const w of A.walls) { if (w.change === 'removed' || w.kind === 'parapet') continue; const [x0, y0, x1, y1] = w.r;
-      q(x0, y0, x1, y0, x0, y0 - T, x1, y0 - T); q(x0, y1, x1, y1, x0, y1 + T, x1, y1 + T); q(x0, y0, x0, y1, x0 - T, y0, x0 - T, y1); q(x1, y0, x1, y1, x1 + T, y0, x1 + T, y1); }
+      q(x0, y0, x1, y0, x0, y0 - T, x1, y0 - T); q(x0, y1, x1, y1, x0, y1 + T, x1, y1 + T); q(x0, y0, x0, y1, x0 - T, y0, x0 - T, y1); q(x1, y0, x1, y1, x1 + T, y0, x1 + T, y1);
+      if (w.kind === 'wall') { side(x0, y0, x1, y0, 0, -0.004); side(x0, y1, x1, y1, 0, 0.004); side(x0, y0, x0, y1, -0.004, 0); side(x1, y0, x1, y1, 0.004, 0); } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4)); g.setIndex(idx);
     const ao = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, fog: false })); ao.renderOrder = 2; root.add(ao); W.aoMesh = ao; }
   const archM = merge(arch), archLowM = merge(archLow), ceilM = merge(ceilG), changeM = merge(changeG, false, false);
@@ -180,7 +183,7 @@ export function createWorld(scene, renderer, mobile) {
   function updateEnv(t) { const U = envMat.uniforms; U.top.value.set(t.top); U.hor.value.set(t.hor); U.bot.value.set(t.hor).multiplyScalar(0.85); U.sunDir.value.copy(sunDirOf(t.el, t.az)); U.sunCol.value.set(t.sun); U.cloud.value = t.cloud;
     const rt = pmrem.fromScene(envScene, 0, 0.1, 200); if (envRT) envRT.dispose(); envRT = rt; scene.environment = rt.texture; }
   const sun = new THREE.DirectionalLight('#fff', 3); sun.castShadow = true;
-  const sm = mobile ? 1536 : 2560; sun.shadow.mapSize.set(sm, sm); const sc = sun.shadow.camera; sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12; sc.near = 1; sc.far = 80;
+  const sm = mobile ? 2048 : 4096; sun.shadow.mapSize.set(sm, sm); const sc = sun.shadow.camera; sc.left = -12; sc.right = 12; sc.top = 12; sc.bottom = -12; sc.near = 1; sc.far = 80;
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.radius = 4; sun.target.position.set(6, 0, -6); scene.add(sun, sun.target);
   const hemi = new THREE.HemisphereLight('#fff3e3', '#d8c3a5', 0.5); scene.add(hemi);
   const fill = new THREE.AmbientLight('#fff0dd', 0.0); scene.add(fill);
@@ -191,8 +194,8 @@ export function createWorld(scene, renderer, mobile) {
       const full = x1 < 0.3 || A.glassdoors.includes(r), sill = full ? 0.05 : 0.9, head = full ? 2.4 : 2.1; const dx = alongX ? 0 : Math.sign(7.8 - cx), dy = alongX ? Math.sign(3.78 - cy) : 0;
       const rl = new THREE.RectAreaLight('#fff', 1, len * 0.95, (head - sill) * 0.9); rl.userData.base = 1; rl.position.set(cx - dx * 0.12, (sill + head) / 2, -(cy - dy * 0.12)); rl.lookAt(rl.position.x + dx, rl.position.y, rl.position.z - dy); scene.add(rl); W.rectLights.push(rl); } }
   const TIMES = {
-    morning: { label: 'בוקר',   el: 24, az: 100, sun: '#ffd7a3', si: 2.6, top: '#7fa9d8', hor: '#f1d9c0', hemi: 0.16, env: 0.45, exp: 0.9, lamps: 0.0, amb: 0.12, cloud: 0.45, win: 2.6, winC: '#ffe5c4' },
-    noon:    { label: 'צהריים', el: 64, az: 200, sun: '#fff6e8', si: 3.0, top: '#5b95d6', hor: '#d9e7f3', hemi: 0.18, env: 0.42, exp: 0.86, lamps: 0.0, amb: 0.16, cloud: 0.55, win: 3.2, winC: '#fff0da' },
+    morning: { label: 'בוקר',   el: 24, az: 100, sun: '#ffd7a3', si: 2.6, top: '#7fa9d8', hor: '#f1d9c0', hemi: 0.13, env: 0.38, exp: 0.84, lamps: 0.0, amb: 0.08, cloud: 0.45, win: 2.6, winC: '#ffe5c4' },
+    noon:    { label: 'צהריים', el: 64, az: 200, sun: '#fff6e8', si: 3.5, top: '#5b95d6', hor: '#d9e7f3', hemi: 0.14, env: 0.34, exp: 0.8, lamps: 0.0, amb: 0.1, cloud: 0.55, win: 3.2, winC: '#fff0da' },
     sunset:  { label: 'שקיעה',  el: 7,  az: 262, sun: '#ff9650', si: 2.4, top: '#3c5a8a', hor: '#ffb27c', hemi: 0.1, env: 0.4,  exp: 1.0, lamps: 0.5, amb: 0.1, cloud: 0.5, win: 1.8, winC: '#ffad72' },
     night:   { label: 'לילה',   el: 38, az: 60,  sun: '#9db2e6', si: 0.25, top: '#050914', hor: '#18223d', hemi: 0.05, env: 0.22, exp: 1.1, lamps: 1.0, amb: 0.08, cloud: 0.3, win: 0.1, winC: '#6a7fb8' }
   };
@@ -271,8 +274,16 @@ export function createWorld(scene, renderer, mobile) {
   const place = (wrap, it) => { wrap.position.set(it.x, 0, -it.y); wrap.rotation.y = it.r; };
   const contactMat = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.filter = 'blur(14px)'; g.fillStyle = 'rgba(0,0,0,.85)'; g.fillRect(30, 30, 68, 68); const t = new THREE.CanvasTexture(c);
     return new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, opacity: 0.55, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, fog: false }); })();
+  const TINTMAP = { sofa: ['sofa', 'cushion'], armchair: ['sofa', 'cushion'], bed: ['bedAcc'], wardrobe: ['cab', 'cabTall'], tall: ['cab', 'cabTall'], closet: ['cab', 'cabTall'], baseRun: ['cab'], upperRun: ['cabTall'], island: ['cab'], diningTable: ['woodF'], desk: ['woodL'], console: ['woodL'], nightstand: ['woodL'], tvUnit: ['cabTall', 'woodL'], sideTable: ['woodL'], coffeeTable: ['woodL', 'woodF'] };
+  function applyItemColor(root, it) {
+    const col = it.p && it.p.col, keys = TINTMAP[it.t]; if (!col || !keys) return; const cl = {};
+    root.traverse(o => { if (!o.isMesh) return; for (const k of keys) if (o.material === M[k]) {
+      if (!cl[k]) { const m = M[k].clone(); UVSIZE.set(m, UVSIZE.get(M[k])); const c = new THREE.Color(col);
+        if (k === 'sofa' || k === 'cushion' || k === 'bedAcc') m.color.copy(c).multiplyScalar(1.3); else if (k === 'cab' || k === 'cabTall') { m.map = WHITE; m.color.copy(c); m.bumpScale = 0; } else m.color.copy(c).multiplyScalar(1.1); cl[k] = m; }
+      o.material = cl[k]; } });
+  }
   function buildItem(it) {
-    const b = new Builder(STYLES[W.style]); TYPES[it.t].make(b, it, it.p);
+    const b = new Builder(STYLES[W.style]); TYPES[it.t].make(b, it, it.p); applyItemColor(b.root, it);
     const m = merge(b.root); const wrap = new THREE.Group(); wrap.add(m); wrap.userData.itemId = it.id;
     const f = footprint(it); if (!f.noBlock) { const sh = new THREE.Mesh(new THREE.PlaneGeometry(f.w + 0.4, f.d + 0.4), contactMat); sh.rotation.x = -Math.PI / 2; sh.position.set(0, 0.011, f.cz); sh.renderOrder = 3; wrap.add(sh); }
     place(wrap, it); return wrap;

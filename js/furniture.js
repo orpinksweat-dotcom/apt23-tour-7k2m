@@ -80,9 +80,13 @@ export class Builder {
     this.block(x - pr, y - pr, x + pr, y + pr); return g;
   }
   art(parent, x, y, z, w, h, ry = 0, m0) { const m = M.art; const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; parent.add(g); this.box(g, w + 0.04, h + 0.04, 0.03, M.frame, 0, 0, 0).position.y = h / 2; this.box(g, w, h, 0.035, m, 0, 0, 0.003).position.y = h / 2; return g; }
-  curtain(cx, cy, face, width, h = 2.5, thick = 0.1) { // face = direction the curtain looks into room
-    const g = this.g(cx, cy, face); this.cyl(g, 0.012, width + 0.6, M.metal, 0, h + 0.05, 0, 8).rotation.z = Math.PI / 2;
-    for (const s of [-1, 1]) for (let k = 0; k < 4; k++) { this.box(g, 0.1, h, 0.04, M.curtain, s * (width / 2 + 0.12 + k * 0.1), 0.02, thick + (k % 2) * 0.04); }
+  curtain(cx, cy, face, width, h = 2.5, thick = 0.1) { // face = direction the curtain looks into the room
+    const g = this.g(cx, cy, face); this.cyl(g, 0.012, width + 0.7, M.metal, 0, h + 0.05, 0, 8).rotation.z = Math.PI / 2;
+    for (const sd of [-1, 1]) {
+      const pw = 0.4 + width * 0.12, geo = new THREE.PlaneGeometry(pw, h, 20, 1), pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin(pos.getX(i) * 22) * 0.035); geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, M.curtain); m.position.set(sd * (width / 2 + pw / 2 + 0.02), h / 2 + 0.02, thick); g.add(m);
+    }
     return g;
   }
   pendant(x, y, z, kind) {
