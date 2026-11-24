@@ -80,7 +80,7 @@ export function createEditor(ctx) {
   let drag = null;
   grab.addEventListener('pointerdown', e => {
     const it = ed.selected(); if (!it) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return;
-    drag = { it, off: [it.x - p.x, it.y - p.y], moved: false, sx: e.clientX, sy: e.clientY }; grab.setPointerCapture(e.pointerId); grab.classList.add('drag'); e.preventDefault(); e.stopPropagation();
+    drag = { it, off: [it.x - p.x, it.y - p.y], moved: false, sx: e.clientX, sy: e.clientY }; try { grab.setPointerCapture(e.pointerId); } catch { } grab.classList.add('drag'); e.preventDefault(); e.stopPropagation();
   });
   grab.addEventListener('pointermove', e => {
     if (!drag) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return; const it = drag.it;

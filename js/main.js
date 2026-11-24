@@ -309,4 +309,4 @@ $('goTop').onclick = () => { camera.clearViewOffset(); $('intro').classList.add(
 (function fromHash() { const h = new URLSearchParams(location.hash.slice(1)); const s = h.get('s'), t = h.get('t'), p = h.get('p'); if (s && STYLES[s]) setStyle(s, true); else setStyle('C', true); if (t && W.TIMES[t]) setTime(t, true); else setTime('noon', true); if (p) { const a = p.split(',').map(Number); if (a.length === 4 && a.every(isFinite)) { fp.setPos(a[0], a[1]); fp.ty = fp.yaw = a[2]; fp.tp = fp.pitch = a[3]; } } })();
 ed.init(); rebuildGrid(); applyCeiling(); W.setLayer('ceiling', false);
 window.__apt = { ed, S, fp, W, camera, scene, tour, grid, setMode, goRoom, startTour, renderer, ROOMS };
-requestAnimationFrame(() => { $('load').classList.add('off'); $('intro').classList.remove('off'); frame(); });
+requestAnimationFrame(() => { $('load').classList.add('off'); $('intro').classList.remove('off'); frame(); if (/[?&]dev/.test(location.search)) $('goWalk').click(); });

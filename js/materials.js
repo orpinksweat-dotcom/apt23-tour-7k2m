@@ -106,6 +106,14 @@ export function genArt(c1, c2, c3) {
   g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, n * .86, n, n * .02);
   return texFrom(c);
 }
+export function genLeaf() {
+  const w = 128, h = 192, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.beginPath(); g.moveTo(w / 2, 4); g.bezierCurveTo(w * 0.98, h * 0.22, w * 0.92, h * 0.7, w / 2, h - 4); g.bezierCurveTo(w * 0.08, h * 0.7, w * 0.02, h * 0.22, w / 2, 4); g.closePath();
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#b9c9b0'); g.fillStyle = gr; g.fill();
+  g.strokeStyle = 'rgba(70,90,60,.55)'; g.lineWidth = 3; g.beginPath(); g.moveTo(w / 2, 6); g.lineTo(w / 2, h - 6); g.stroke(); g.lineWidth = 1.2;
+  for (let i = 1; i < 9; i++) { const y = i * h / 9.5; g.beginPath(); g.moveTo(w / 2, y + 8); g.lineTo(w * 0.12, y - 14); g.moveTo(w / 2, y + 8); g.lineTo(w * 0.88, y - 14); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
 export function genFabric(color) {
   const n = 128, c = canvas(n), g = c.getContext('2d'); g.fillStyle = color; g.fillRect(0, 0, n, n);
   for (let i = 0; i < n; i += 2) { g.fillStyle = 'rgba(0,0,0,0.05)'; g.fillRect(i, 0, 1, n); g.fillRect(0, i, n, 1); }
@@ -120,23 +128,24 @@ export function genDeck(color) {
 // ---- shared material set ----
 export const M = {};
 const tex = {};
+function phys(color, o = {}) { return new THREE.MeshPhysicalMaterial({ color, roughness: 0.8, metalness: 0, ...o }); }
 function std(color, o = {}) { return new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0, ...o }); }
 
 export function initMaterials() {
   M.wall = std('#fff'); M.ceiling = std('#fff', { roughness: 0.95 });
-  M.floorPub = std('#fff', { roughness: 0.38 }); M.floorWood = std('#fff', { roughness: 0.55 });
-  M.tile = std('#fff', { roughness: 0.3 }); M.wallWet = std('#fff', { roughness: 0.35 });
+  M.floorPub = phys('#fff', { roughness: 0.38 }); M.floorWood = phys('#fff', { roughness: 0.55 });
+  M.tile = phys('#fff', { roughness: 0.3 }); M.wallWet = std('#fff', { roughness: 0.35 });
   M.deck = std('#fff', { roughness: 0.75 });
   M.cab = std('#fff', { roughness: 0.55 }); M.cabTall = std('#fff', { roughness: 0.55 });
-  M.counter = std('#fff', { roughness: 0.22, metalness: 0.02 });
+  M.counter = phys('#fff', { roughness: 0.22, metalness: 0.02 });
   M.metal = std('#222', { roughness: 0.35, metalness: 0.85 }); M.brass = std('#b08d57', { roughness: 0.3, metalness: 0.9 });
-  M.sofa = std('#fff', { roughness: 0.95 }); M.cushion = std('#fff', { roughness: 0.95 });
+  M.sofa = phys('#fff', { roughness: 0.95 }); M.cushion = phys('#fff', { roughness: 0.95 });
   M.rug = std('#fff', { roughness: 1 }); M.curtain = std('#fff', { roughness: 1, side: THREE.DoubleSide, transparent: true, opacity: 0.92 });
   M.woodF = std('#fff', { roughness: 0.5 }); M.woodL = std('#fff', { roughness: 0.55 });
-  M.bed = std('#fff', { roughness: 0.95 }); M.bedAcc = std('#fff', { roughness: 0.95 });
+  M.bed = phys('#fff', { roughness: 0.95 }); M.bedAcc = phys('#fff', { roughness: 0.95 });
   M.white = std('#f4f3f0', { roughness: 0.4 }); M.ceramic = std('#fbfbfa', { roughness: 0.12 });
   M.black = std('#16171a', { roughness: 0.5 }); M.dark = std('#2b2b2e', { roughness: 0.6 });
-  M.leaf = std('#4f7a45', { roughness: 0.8 }); M.leaf2 = std('#3d6b3c', { roughness: 0.8 }); M.pot = std('#cfc4b3', { roughness: 0.9 });
+  const leafTex = genLeaf(); M.leaf = std('#6a9a58', { map: leafTex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.55 }); M.leaf2 = std('#4a7d41', { map: leafTex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.55 }); M.pot = std('#cfc4b3', { roughness: 0.9 });
   M.soil = std('#3a2c20', { roughness: 1 });
   M.glass = new THREE.MeshPhysicalMaterial({ color: '#cfe6ee', roughness: 0.03, metalness: 0, transparent: true, opacity: 0.16, envMapIntensity: 1.4, side: THREE.DoubleSide, depthWrite: false });
   M.mirror = new THREE.MeshStandardMaterial({ color: '#dfe6ea', roughness: 0.02, metalness: 1 });
@@ -149,6 +158,11 @@ export function initMaterials() {
   M.shade = std('#f2e6d0', { roughness: 0.9, side: THREE.DoubleSide, emissive: '#ffcf93', emissiveIntensity: 0 });
 }
 
+export function finishMaterials() {
+  M.floorPub.clearcoat = 0.12; M.floorPub.clearcoatRoughness = 0.25; M.tile.clearcoat = 0.25; M.tile.clearcoatRoughness = 0.15;
+  M.floorWood.clearcoat = 0.18; M.floorWood.clearcoatRoughness = 0.35; M.counter.clearcoat = 0.7; M.counter.clearcoatRoughness = 0.12;
+  for (const k of ['sofa', 'cushion', 'bed', 'bedAcc']) { M[k].sheen = 0.9; M[k].sheenRoughness = 0.55; M[k].sheenColor = new THREE.Color('#ffffff'); }
+}
 export const emissives = []; // materials whose emissive follows night
 
 export function applyStyle(key) {
@@ -174,7 +188,10 @@ export function applyStyle(key) {
   M.woodF.map = tex.woodF; M.woodF.color.set('#ffffff'); M.woodL.map = tex.woodL; M.woodL.color.set('#ffffff');
   M.bed.color.set(S.bed); M.bedAcc.color.set(S.bedAcc);
   M.woodF.needsUpdate = M.woodL.needsUpdate = true;
-  // tile scale handled via UV scale in world.js (uv in metres / size)
+  const bump = (m, t, v) => { m.bumpMap = t; m.bumpScale = v; m.needsUpdate = true; };
+  bump(M.floorWood, tex.wood, 0.9); bump(M.floorPub, tex.stone, 0.7); bump(M.tile, tex.tile, 0.5); bump(M.wall, tex.plaster, 0.35); bump(M.ceiling, tex.ceil, 0.25);
+  bump(M.deck, tex.deck, 1.1); bump(M.counter, tex.counter, 0.2); bump(M.sofa, tex.fab, 1.2); bump(M.woodF, tex.woodF, 0.8); bump(M.woodL, tex.woodL, 0.8); bump(M.rug, tex.rug, 1.4);
+  if (!S.cabPaint) bump(M.cab, tex.cabw, 0.7); else { M.cab.bumpMap = null; }
   return S;
 }
 

@@ -1,6 +1,7 @@
 // Procedural furniture. Coordinates are plan metres (x east, y north). Local front = +z (faces plan-south).
 import * as THREE from 'three';
 import { M } from './materials.js';
+import { RoundedBoxGeometry } from '../vendor/RoundedBoxGeometry.js';
 
 const FACE = { S: 0, E: Math.PI / 2, N: Math.PI, W: -Math.PI / 2 };
 
@@ -8,7 +9,24 @@ export class Builder {
   constructor(S) { this.S = S; this.root = new THREE.Group(); this.blocks = []; this.lights = []; this.niche = { bar: new THREE.Group(), store: new THREE.Group() }; }
   // generic primitives -------------------------------------------------
   g(x, y, face = 'S', parent) { const g = new THREE.Group(); g.position.set(x, 0, -y); g.rotation.y = typeof face === 'number' ? face : FACE[face]; (parent || this.root).add(g); return g; }
-  box(p, w, h, d, m, x, y, z, ry = 0) { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y + h / 2, z); o.rotation.y = ry; p.add(o); return o; }
+  box(p, w, h, d, m, x, y, z, ry = 0) {
+    const mn = Math.min(w, h, d), soft = (m === M.sofa || m === M.cushion || m === M.bed || m === M.bedAcc || m === M.rug);
+    const r = soft ? Math.min(0.07, 0.45 * mn) : Math.min(0.012, 0.4 * mn), seg = (mn > 0.2 || soft) ? 3 : 1;
+    const geo = r > 0.003 ? new RoundedBoxGeometry(w, h, d, seg, r) : new THREE.BoxGeometry(w, h, d);
+    const o = new THREE.Mesh(geo, m); o.position.set(x, y + h / 2, z); o.rotation.y = ry; p.add(o); return o;
+  }
+  // real foliage: textured leaf cards (alpha cut-out)
+  leaf(p, x, y, z, len, ry, tilt, mat, wr = 0.62) {
+    const g = new THREE.PlaneGeometry(len * wr, len); g.translate(0, len / 2, 0); const o = new THREE.Mesh(g, mat);
+    o.rotation.order = 'YXZ'; o.rotation.y = ry; o.rotation.x = -tilt; o.position.set(x, y, z); p.add(o); return o;
+  }
+  bush(p, x, y, z, rad, h, n, seed = 1) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453, r1 = a - Math.floor(a), b = Math.sin(i * 39.346 + seed * 11.135) * 24634.6345, r2 = b - Math.floor(b);
+      const ry = i * 2.399963 + seed, rr = rad * Math.sqrt(r1), hh = h * r2;
+      this.leaf(p, x + Math.cos(ry) * rr, y + hh * 0.6, z + Math.sin(ry) * rr, 0.16 + (0.1 + 0.18 * (1 - r2)) * (0.7 + 0.6 * r1), ry, 0.25 + 0.9 * r1 * (0.5 + hh / h * 0.5), i % 3 ? M.leaf : M.leaf2);
+    }
+  }
   cyl(p, rt, h, m, x, y, z, seg = 20, rb) { const o = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb ?? rt, h, seg), m); o.position.set(x, y + h / 2, z); p.add(o); return o; }
   sph(p, r, m, x, y, z, sx = 1, sy = 1, sz = 1) { const o = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); p.add(o); return o; }
   block(x0, y0, x1, y1) { this.blocks.push([Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1)]); }
@@ -50,14 +68,14 @@ export class Builder {
   }
   rug(x, y, w, d, round = false, face = 'S') { const g = this.g(x, y, face); if (round) this.cyl(g, w / 2, 0.012, M.rug, 0, 0.001, 0, 48); else this.box(g, w, 0.012, d, M.rug, 0, 0.001, 0); return g; }
   plant(x, y, h = 1.3, kind = 0) {
-    const g = this.g(x, y, 'S'); const pr = 0.17 + h * 0.04;
-    this.cyl(g, pr, 0.4 + h * 0.05, M.pot, 0, 0, 0, 18, pr * 0.8); this.cyl(g, pr * .9, 0.02, M.soil, 0, 0.4 + h * 0.05 - 0.01, 0, 14);
-    const y0 = 0.42 + h * 0.05, n = 6 + Math.floor(h * 4);
-    for (let i = 0; i < n; i++) {
-      const a = i * 2.4, t = i / n, r = 0.08 + t * 0.28 * (h / 1.3), yy = y0 + 0.15 + t * (h - 0.5);
-      const m = i % 2 ? M.leaf : M.leaf2;
-      if (kind === 1) { const o = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.55 + t * 0.2, 6), m); o.position.set(Math.cos(a) * r, yy, Math.sin(a) * r); o.rotation.set(Math.sin(a) * .5, 0, -Math.cos(a) * .5); g.add(o); }
-      else this.sph(g, 0.15 + (1 - t) * 0.07, m, Math.cos(a) * r, yy, Math.sin(a) * r, 1, 0.8, 1);
+    const g = this.g(x, y, 'S'); const pr = 0.17 + h * 0.04, ph = 0.4 + h * 0.05;
+    this.cyl(g, pr, ph, M.pot, 0, 0, 0, 24, pr * 0.8); this.cyl(g, pr * 0.9, 0.02, M.soil, 0, ph - 0.01, 0, 16);
+    if (kind === 1) { // sword-leaf plant
+      const n = 16 + Math.round(h * 8);
+      for (let i = 0; i < n; i++) { const ry = i * 2.399963, t = (i % 5) * 0.11 + 0.08, len = (0.45 + h * 0.4) * (0.65 + ((i * 7) % 5) * 0.09); this.leaf(g, Math.cos(ry) * 0.04, ph, Math.sin(ry) * 0.04, len, ry, t, i % 2 ? M.leaf : M.leaf2, 0.2); }
+    } else { // ficus-like
+      this.cyl(g, 0.018, h - ph, M.woodF, 0, ph, 0, 6);
+      for (let k = 0; k < 4; k++) this.bush(g, Math.sin(k * 2.1) * 0.12, ph + (h - ph) * (0.35 + k * 0.17), Math.cos(k * 2.1) * 0.12, 0.2 + 0.07 * (3 - k), 0.25, 26, k + 1);
     }
     this.block(x - pr, y - pr, x + pr, y + pr); return g;
   }

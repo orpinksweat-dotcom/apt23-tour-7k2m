@@ -7,9 +7,9 @@ const PI = Math.PI, E = PI / 2, N = PI, W_ = -PI / 2, S_ = 0;
 // ---- extra pieces built on the Builder ----
 function planter(b, len) {
   const g = b.g(0, 0, 0); b.box(g, len, 0.42, 0.46, M.woodF, 0, 0, 0); b.box(g, len - 0.06, 0.02, 0.4, M.soil, 0, 0.42, 0);
-  const n = Math.max(3, Math.round(len / 0.3));
-  for (let i = 0; i < n; i++) { const x = -len / 2 + len / n * (i + .5), h = 0.5 + ((i * 37) % 5) * 0.07; b.sph(g, 0.2 + (i % 3) * 0.03, i % 2 ? M.leaf : M.leaf2, x, 0.42 + h * 0.6, ((i * 13) % 3 - 1) * 0.05, 1, 0.95, 1); }
-  for (let i = 0; i < 2; i++) { const o = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0 + i * 0.25, 7), M.leaf2); o.position.set(-len * 0.25 + i * len * 0.5, 0.42 + 0.55 + i * 0.12, 0); g.add(o); }
+  const n = Math.max(2, Math.round(len / 0.45));
+  for (let i = 0; i < n; i++) b.bush(g, -len / 2 + len / n * (i + .5), 0.42, 0, 0.17, 0.45 + (i % 3) * 0.1, 34, i + 3);
+  for (let i = 0; i < 3; i++) for (let k = 0; k < 9; k++) b.leaf(g, -len * 0.3 + i * len * 0.3 + Math.cos(k) * 0.03, 0.42, Math.sin(k) * 0.05, 0.7 + (k % 4) * 0.12 + i * 0.08, k * 2.4, 0.08 + (k % 3) * 0.1, k % 2 ? M.leaf : M.leaf2, 0.1);
   return g;
 }
 function sunLounger(b) {
