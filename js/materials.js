@@ -159,6 +159,9 @@ export function initMaterials() {
 }
 
 export function finishMaterials() {
+  const FLAT = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1); FLAT.needsUpdate = true;
+  for (const k of ['floorWood', 'floorPub', 'tile', 'wall', 'ceiling', 'deck', 'sofa', 'cushion', 'bed', 'bedAcc', 'rug', 'woodF', 'woodL', 'cab']) { M[k].normalMap = FLAT; M[k].normalScale.set(0.5, 0.5); }
+  for (const k of ['bed', 'bedAcc', 'cushion']) { }
   M.floorPub.clearcoat = 0.12; M.floorPub.clearcoatRoughness = 0.25; M.tile.clearcoat = 0.25; M.tile.clearcoatRoughness = 0.15;
   M.floorWood.clearcoat = 0.18; M.floorWood.clearcoatRoughness = 0.35; M.counter.clearcoat = 0.7; M.counter.clearcoatRoughness = 0.12;
   for (const k of ['sofa', 'cushion', 'bed', 'bedAcc']) { M[k].sheen = 0.9; M[k].sheenRoughness = 0.55; M[k].sheenColor = new THREE.Color('#ffffff'); }
@@ -183,15 +186,16 @@ export function applyStyle(key) {
   M.cabTall.map = null; M.cabTall.color.set(S.cabTall); M.cabTall.needsUpdate = true;
   M.metal.color.set(S.metal); M.brass.color.set(S.brass);
   set(M.sofa, tex.fab, S.sofa); M.sofa.color.set('#ffffff'); tex.fab.needsUpdate = true;
-  M.cushion.color.set(S.cushion); M.rug.color.set(S.rug); M.rug.map = tex.rug; M.rug.needsUpdate = true;
+  M.cushion.color.set(S.cushion); M.cushion.map = tex.rug; M.rug.color.set(S.rug); M.rug.map = tex.rug; M.rug.needsUpdate = true;
   M.curtain.color.set(S.curtain);
   M.woodF.map = tex.woodF; M.woodF.color.set('#ffffff'); M.woodL.map = tex.woodL; M.woodL.color.set('#ffffff');
   M.bed.color.set(S.bed); M.bedAcc.color.set(S.bedAcc);
   M.woodF.needsUpdate = M.woodL.needsUpdate = true;
-  const bump = (m, t, v) => { m.bumpMap = t; m.bumpScale = v; m.needsUpdate = true; };
+  const bump = (m, t, v) => { m.bumpMap = t; m.bumpScale = v; };
   bump(M.floorWood, tex.wood, 0.9); bump(M.floorPub, tex.stone, 0.7); bump(M.tile, tex.tile, 0.5); bump(M.wall, tex.plaster, 0.35); bump(M.ceiling, tex.ceil, 0.25);
   bump(M.deck, tex.deck, 1.1); bump(M.counter, tex.counter, 0.2); bump(M.sofa, tex.fab, 1.2); bump(M.woodF, tex.woodF, 0.8); bump(M.woodL, tex.woodL, 0.8); bump(M.rug, tex.rug, 1.4);
-  if (!S.cabPaint) bump(M.cab, tex.cabw, 0.7); else { M.cab.bumpMap = null; }
+  bump(M.cab, tex.cabw, S.cabPaint ? 0 : 0.7);
+  applyPhotos(S);
   return S;
 }
 
@@ -207,4 +211,42 @@ export function worldUV(geom, mesh, size = 1.2) {
     uv.setXY(i, a / size, b / size);
   }
   geom.setAttribute('uv', uv); uv.needsUpdate = true;
+}
+
+
+// ---- photographic CC0 textures (Poly Haven), loaded in the background; procedural ones stay as fallback ----
+let PHOTO = false; try { PHOTO = localStorage.getItem('apt23.photo') === '1'; } catch { }
+export const isPhoto = () => PHOTO;
+export function setPhoto(v) { PHOTO = v; try { localStorage.setItem('apt23.photo', v ? '1' : '0'); } catch { } }
+const TEXLOADER = new THREE.TextureLoader(); const TCACHE = new Map(), RCACHE = new Map(); let CUR = null, PT = 0;
+function photo(name, srgb) {
+  if (!TCACHE.has(name)) { const e = { ready: false, t: null }; e.t = TEXLOADER.load('tex/' + name, () => { e.ready = true; clearTimeout(PT); PT = setTimeout(() => CUR && applyPhotos(CUR), 400); }, undefined, () => { });
+    e.t.wrapS = e.t.wrapT = THREE.RepeatWrapping; e.t.anisotropy = 8; if (srgb) e.t.colorSpace = THREE.SRGBColorSpace; TCACHE.set(name, e); }
+  return TCACHE.get(name);
+}
+function tiled(name, srgb, rep) {
+  const e = photo(name, srgb); if (!e.ready) return null; const k = name + '@' + rep;
+  if (!RCACHE.has(k)) { const t = e.t.clone(); t.needsUpdate = true; t.repeat.set(rep, rep); RCACHE.set(k, t); } return RCACHE.get(k);
+}
+function tintOf(hex, k, gain) { const c = new THREE.Color(hex); c.lerp(new THREE.Color('#ffffff'), 1 - k); c.multiplyScalar(gain); return c; }
+function usePhoto(m, base, procSize, photoSize, o = {}) {
+  const rep = procSize / photoSize;
+  const d = o.color ? tiled(base + '_diff.jpg', true, rep) : null, n = tiled(base + '_nor.jpg', false, rep);
+  if (d) { m.map = d; m.color.copy(tintOf(o.color, o.k ?? 0.6, o.gain ?? 1.1)); }
+  if (n) { m.normalMap = n; m.normalScale.set(o.ns ?? 0.8, o.ns ?? 0.8); m.bumpScale = 0; }
+}
+export function applyPhotos(S) {
+  CUR = S; if (!PHOTO) return;
+  usePhoto(M.floorWood, 'floorWood', 1.2, 1.9, { color: S.floorWood, k: 0.55, gain: 1.3 });
+  usePhoto(M.floorPub, 'stone', 1.6, 2.0, { color: S.floorPub, k: 0.5, gain: 1.25, ns: 0.6 });
+  usePhoto(M.tile, 'stone', 0.8, 1.4, { color: S.tile, k: 0.45, gain: 1.3, ns: 0.6 });
+  usePhoto(M.woodL, 'woodL', 0.8, 1.0, { color: S.woodL, k: 0.6, gain: 1.1 });
+  usePhoto(M.woodF, 'woodL', 0.8, 1.0, { color: S.woodF, k: 0.85, gain: 1.0 });
+  if (!S.cabPaint) usePhoto(M.cab, 'woodL', 1.0, 1.0, { color: S.cab, k: 0.55, gain: 1.15 });
+  usePhoto(M.deck, 'deck', 1.0, 1.4, { color: S.deck, k: 0.6, gain: 1.25 });
+  usePhoto(M.sofa, 'fabric', 0.3, 0.4, { color: S.sofa, k: 0.7, gain: 1.8, ns: 1.0 });
+  usePhoto(M.cushion, 'fabric', 0.3, 0.4, { color: S.cushion, k: 0.85, gain: 1.7, ns: 1.0 });
+  usePhoto(M.rug, 'fabric', 0.5, 0.5, { color: S.rug, k: 0.7, gain: 1.8, ns: 1.2 });
+  usePhoto(M.bed, 'fabric', 0.3, 0.4, { ns: 0.9 }); usePhoto(M.bedAcc, 'fabric', 0.3, 0.4, { ns: 0.9 });
+  usePhoto(M.wall, 'wall', 1.6, 1.5, { ns: 0.35 }); usePhoto(M.ceiling, 'wall', 1.6, 1.5, { ns: 0.25 });
 }

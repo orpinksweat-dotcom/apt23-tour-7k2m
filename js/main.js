@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { PLAN } from './plan.js';
 import { createWorld, ROOMS } from './world.js';
-import { STYLES } from './materials.js';
+import { STYLES, isPhoto, setPhoto, applyPhotos } from './materials.js';
 import { Grid, FP, Tour } from './nav.js';
 import { createEditor } from './edit.js';
 import { TYPES, CATS, ICONS } from './items.js';
@@ -143,6 +143,8 @@ const PANELS = {
     <div class="note">הקישו על פריט בדירה כדי לבחור אותו, וגררו את הידית הזהובה כדי להזיז. הסתכלות והליכה ממשיכות לעבוד כרגיל. "מקור" מחזירה את העיצוב שהצעתי, "מאפס" מרוקנת את הדירה.</div>`,
   more: () => `<h4>עוד</h4>
     <div class="row2"><span>נישת אירוח</span><div class="grid g2" style="width:220px"><button class="chip ${W.niche === 'bar' ? 'on' : ''}" data-niche="bar" style="text-align:center">בר וקפה</button><button class="chip ${W.niche === 'store' ? 'on' : ''}" data-niche="store" style="text-align:center">אחסון וסדר</button></div></div>
+    <h5>איכות</h5>
+    <div class="row2"><span>ריאליזם צילומי (ניסיוני, כבד יותר)</span><button class="sw-t ${isPhoto() ? 'on' : ''}" data-photo="1" aria-label="ריאליזם צילומי"></button></div>
     <h5>שכבות</h5>
     ${[['ceiling', 'תקרה'], ['walls', 'קירות מלאים (כבוי = חתך)'], ['furniture', 'ריהוט וארונות'], ['changes', 'סימון שינויים מוצעים']].map(([k, l]) => `<div class="row2"><span>${l}</span><button class="sw-t ${S.layers[k] ? 'on' : ''}" data-layer="${k}" aria-label="${l}"></button></div>`).join('')}
     <h5>שליטה</h5>
@@ -178,6 +180,7 @@ sheet.addEventListener('click', e => {
   else if (t.dataset.style) { setStyle(t.dataset.style); sheet.innerHTML = PANELS.style(); }
   else if (t.dataset.time) { setTime(t.dataset.time); sheet.innerHTML = PANELS.time(); }
   else if (t.dataset.niche) { W.setNiche(t.dataset.niche); sheet.innerHTML = PANELS.more(); toast(t.dataset.niche === 'bar' ? 'נישה: בר וקפה' : 'נישה: אחסון וסדר'); }
+  else if (t.dataset.photo) { const on = !isPhoto(); setPhoto(on); t.classList.toggle('on', on); W.setStyle(S.style); rebuildGrid(); toast(on ? 'טקסטורות צילומיות נטענות...' : 'ריאליזם צילומי כבוי'); }
   else if (t.dataset.layer) { const k = t.dataset.layer; S.layers[k] = !S.layers[k]; if (k === 'ceiling') applyCeiling(); else W.setLayer(k, S.layers[k]); t.classList.toggle('on', S.layers[k]); }
   else if (t.dataset.fav) { const f = favs()[+t.dataset.fav]; if (f) { fp.cancel(); fp.x = f[0]; fp.y = f[1]; fp.ty = fp.yaw = f[2]; fp.tp = fp.pitch = f[3]; if (S.mode === 'top') { setMode('walk', { room: 'lobby' }); } toast('נקודת מבט ' + (+t.dataset.fav + 1)); } }
   else if (t.dataset.ed) { const a = t.dataset.ed; if (a === 'clear' && !confirm('לרוקן את כל הפריטים ולהתחיל מאפס?')) return; ({ undo: ed.undo, redo: ed.redo, reset: ed.reset, clear: ed.clearAll })[a](); }
