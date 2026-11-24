@@ -118,7 +118,7 @@ export function initMaterials() {
   M.mirror = new THREE.MeshStandardMaterial({ color: '#dfe6ea', roughness: 0.02, metalness: 1 });
   M.frame = std('#2a2c2f', { roughness: 0.45, metalness: 0.6 });
   M.light = new THREE.MeshStandardMaterial({ color: '#fff', emissive: '#ffe2b8', emissiveIntensity: 0, roughness: 0.6 });
-  M.art = std('#fff', { roughness: 0.9 }); M.screen = std('#0a0b0d', { roughness: 0.15, metalness: 0.4 });
+  M.toyA = std('#e8b64d', { roughness: 0.7 }); M.toyB = std('#6fb3a2', { roughness: 0.7 }); M.toyC = std('#d9826b', { roughness: 0.7 }); M.art = std('#fff', { roughness: 0.9 }); M.screen = std('#0a0b0d', { roughness: 0.15, metalness: 0.4 });
   M.water = std('#8fc3d6', { roughness: 0.05, metalness: 0, transparent: true, opacity: 0.8 });
   M.change = new THREE.MeshBasicMaterial({ color: '#ff8a3d', transparent: true, opacity: 0.55, depthWrite: false });
   M.flame = new THREE.MeshBasicMaterial({ color: '#ff9a3c' });

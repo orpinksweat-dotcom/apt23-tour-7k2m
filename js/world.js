@@ -5,6 +5,8 @@ import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import { PLAN } from './plan.js';
 import { M, initMaterials, applyStyle, worldUV, STYLES } from './materials.js';
 import { Builder } from './furniture.js';
+import { TYPES, footprint, defaultItems } from './items.js';
+let initialItems = defaultItems; export function setInitialItems(f) { initialItems = f; }
 
 const H = 2.6;                      // ceiling height (ASSUMPTION: not written in the drawing)
 const SILL = 0.9, HEAD = 2.1;       // window sill / head (assumption), doors 2.1 (assumption)
@@ -22,9 +24,11 @@ export const ROOMS = [
   { id: 'masterbath', name: 'חדר רחצה הורים',pos: [10.95, 6.3], look: [9.7, 5.4],  area: PLAN.areas.masterbath },
   { id: 'bed3',    name: 'חדר שינה',         pos: [13.25, 3.2], look: [14.2, 1.4], area: PLAN.areas.bed3 },
   { id: 'mamad',   name: 'ממ״ד · חדר שינה',  pos: [10.3, 2.95], look: [11.6, 1.4], area: PLAN.areas.mamad },
-  { id: 'terrace', name: 'מרפסת הגג',        pos: [-1.0, 5.8],  look: [-2.6, 2.4], area: null,                note: 'פינת אוכל מוצלת בפרגולה' },
-  { id: 'outkitchen', name: 'מטבח חוץ',      pos: [-0.2, 8.45], look: [1.8, 10.2], area: null,                note: 'המחשה טעונת אישור · גז, ניקוז והיתרים' },
-  { id: 'lounge',  name: 'פינת רביצה',       pos: [-0.3, 8.5],  look: [-3.0, 10.6],area: null }
+  { id: 'terrace', name: 'מרפסת הגג',        pos: [-0.9, 5.9],  look: [-2.6, 4.2], area: null,                note: 'שולחן ל-6 שנפתח ל-8, בצל פרגולה' },
+  { id: 'outkitchen', name: 'מטבח חוץ',      pos: [0.5, 8.7],   look: [1.9, 10.7], area: null,                note: 'המחשה טעונת אישור · גז, ניקוז והיתרים' },
+  { id: 'kids',    name: 'פינת ילדים',       pos: [-0.9, 8.9],  look: [-3.2, 10.4],area: null,                note: 'מזרן משחק, בית ושולחן ילדים, בשדה ראייה של המבוגרים' },
+  { id: 'adults',  name: 'פינת מבוגרים',     pos: [-3.0, 8.6],  look: [0.3, 9.9],  area: null,                note: 'ישיבה מול פינת הילדים, בלי להיות צמודים' },
+  { id: 'storage', name: 'מחסן מרפסת',       pos: [0.9, 8.5],   look: [2.0, 8.7],  area: null,                note: 'לכיסאות, צעצועים וציוד בית בימי גשם' }
 ];
 
 export function createWorld(scene, renderer, mobile) {
@@ -189,118 +193,79 @@ export function createWorld(scene, renderer, mobile) {
   let furnM = null, nicheBarM = null, nicheStoreM = null; const lampLights = [];
   const furnGroup = new THREE.Group(); root.add(furnGroup); W.furnGroup = furnGroup;
 
-  function layout(S, key) {
-    const b = new Builder(S); const R = A.rooms; const bar = b.niche.bar, store = b.niche.store;
-    const dec = key === 'A' ? 0.6 : 1.0;
-    // ---- living ----
-    b.rug(2.7, 5.2, 3.3, 2.5, S.rugRound);
-    b.sofa(2.6, 4.45, 'N', 2.8, 0.98, 3);
-    b.coffeeTable(2.65, 5.45, S.rugRound ? 0.95 : 1.25, S.rugRound ? 0.95 : 0.7, S.rugRound);
-    b.armchair(4.15, 5.55, 'W'); b.sideTable(4.15, 6.2, 0.26);
-    b.tvUnit(3.2, 7.04, 'S', 2.1);
-    b.floorLamp(0.7, 3.85); b.floorLamp(4.35, 4.55, false);
-    b.plant(0.5, 7.0, 1.6 * S.plant ** .3, key === 'A' ? 1 : 0); b.plant(4.4, 7.0, 1.2);
-    if (S.plant > 1.2) b.plant(0.5, 4.2, 1.1); b.plant(2.15, 7.0, 0.9 * S.plant, 1);
-    b.art(b.root, 3.2, 1.55, -(7.26 - 0.02), 0.9, 0.7, 0, M.bedAcc); b.art(b.root, 2.3, 1.55, -(7.26 - 0.02), 0.6, 0.8, 0, M.cushion);
-    b.curtain(0.2, 5.9, 'E', 1.9, 2.45, 0.05); // sheer next to the glass door
-    // ---- lobby ----
-    b.console(5.5, 5.75, 'W', 1.0); b.mirror(b.root, 5.69, 1.15, -5.75, 0.7, 1.0, -Math.PI / 2);
-    // ---- dining ----
-    const dt = b.diningTable(1.4, 1.9, 'E', 2.3, 0.98, 3, false);
-    const pd = b.pendant(1.4, 1.9, 1.65, S.pendant); pd.rotation.y = Math.PI / 2; if (S.pendant === 'globe') { b.pendant(1.4, 1.35, 1.65, 'globe'); b.pendant(1.4, 2.45, 1.65, 'globe'); }
-    b.rug(1.4, 1.9, 2.4, 3.0, S.rugRound && false);
-    b.plant(0.5, 3.15, 1.5, 1); b.curtain(1.05, 0.22, 'N', 1.1, 2.4, 0.05);
-    // ---- kitchen (enlarged) ----
-    const kr = b.baseRun(5.25, 0.22, 'N', 5.9); b.sink(kr, 4.9 - 5.25); b.block(2.3, 0.22, 8.2, 0.86);
-    b.upperRun(3.3, 0.22, 'N', 1.9, 0.34); b.upperRun(6.25, 0.22, 'N', 1.1, 0.34); b.upperRun(8.45 - 0.15, 0.22, 'N', 0.0001, 0.34);
-    const hr = b.baseRun(7.1, 3.30, 'S', 1.8); b.hob(hr, 0); b.hood(7.1, 3.30, 'S', 0.9); b.block(6.2, 2.7, 8.0, 3.32); b.upperRun(6.4, 3.30, 'S', 0.5, 0.34); b.upperRun(7.8, 3.30, 'S', 0.5, 0.34);
-    b.island(4.5, 2.4, 'N', 3.0, 1.0);
-    for (let i = 0; i < 3; i++) b.pendant(3.5 + i * 1.0, 2.4, 1.7, S.pendant === 'bar' ? 'bar' : S.pendant);
-    b.fridge(8.93 - 0.0, 0.85, 'W', 0.9); b.block(8.25, 0.4, 8.93, 1.3);
-    b.tall(8.93, 2.0, 'W', 1.4); b.block(8.3, 1.3, 8.93, 2.7);
-    b.plant(2.45, 0.55, 1.0, 1);
-    b.rug(7.0, 1.9, 2.0, 1.2, false);
+  function staticLayout(S, key) {
+    const b = new Builder(S); const bar = b.niche.bar, store = b.niche.store;
+    // soft furnishings that stay fixed to the architecture
+    b.curtain(0.2, 5.9, 'E', 1.9, 2.45, 0.05); b.curtain(1.05, 0.22, 'N', 1.1, 2.4, 0.05);
+    b.mirror(b.root, 5.69, 1.15, -5.75, 0.7, 1.0, -Math.PI / 2);
+    b.art(b.root, 3.2, 1.55, -(7.26 - 0.02), 0.9, 0.7, 0); b.art(b.root, 2.3, 1.55, -(7.26 - 0.02), 0.6, 0.8, 0);
+    b.art(b.root, 14.1, 1.35, -(7.337 - 0.07), 1.3, 0.6, 0); b.art(b.root, 9.7, 1.45, -(4.49 - 0.03), 0.9, 0.6, 0);
+    b.curtain(14.0, 7.337, 'S', 1.2, 2.45, 0.05); b.curtain(15.43, 5.96, 'W', 1.2, 2.45, 0.05);
+    b.curtain(15.43, 1.55, 'W', 1.2, 2.45, 0.05); b.curtain(14.3, 0.22, 'N', 1.2, 2.45, 0.05);
     // ---- niche (bar / storage) ----
     { const nb = new Builder(S); nb.baseRun(6.93, 5.9, 'W', 1.7, 0.55); nb.upperRun(6.93, 5.9, 'W', 1.7, 0.3, 0.7, 1.5);
-      // appliances on bar counter
       nb.box(nb.root, 0.3, 0.4, 0.4, M.metal, 6.65, 0.9, -5.9); nb.cyl(nb.root, 0.05, 0.12, M.ceramic, 6.65, 0.9, -5.4, 12); nb.cyl(nb.root, 0.05, 0.12, M.ceramic, 6.65, 0.9, -5.3, 12);
       for (let i = 0; i < 6; i++) nb.cyl(nb.root, 0.025, 0.18, M.glass, 6.78, 1.55, -(5.2 + i * 0.25), 8);
-      nb.box(nb.root, 0.3, 0.6, 0.5, M.glass, 6.7, 0.14, -5.0); // wine fridge glass
-      nb.box(nb.root, 0.02, 1.9, 1.2, M.woodL, 5.82, 0.0, -5.6); // slat panel on west wall
+      nb.box(nb.root, 0.3, 0.6, 0.5, M.glass, 6.7, 0.14, -5.0); nb.box(nb.root, 0.02, 1.9, 1.2, M.woodL, 5.82, 0.0, -5.6);
       nb.block(6.38, 4.9, 6.93, 6.75); bar.add(nb.root); b.blocks.push(...nb.blocks);
-      const ns = new Builder(S); ns.tall(6.93, 5.85, 'W', 1.85, 0.55); for (let i = 0; i < 3; i++) ns.box(ns.root, 0.4, 0.3, 0.35, M.bedAcc, 6.2, 0.0 + 0.0, -(6.3 - i * 0.0)).visible = false;
-      ns.box(ns.root, 0.02, 1.9, 1.0, M.woodL, 5.82, 0.0, -5.6); ns.block(6.38, 4.9, 6.93, 6.77); store.add(ns.root); }
-    // ---- general bath ----
-    b.shower(7.55, 6.27, 'S'); b.toilet(8.75, 6.58, 'S'); b.vanity(9.31, 5.2, 'W', 0.9, 1); b.box(b.root, 0.5, 0.02, 0.3, M.bedAcc, 7.45, 1.2, -4.75);
+      const ns = new Builder(S); ns.tall(6.93, 5.85, 'W', 1.85, 0.55); ns.box(ns.root, 0.02, 1.9, 1.0, M.woodL, 5.82, 0.0, -5.6); ns.block(6.38, 4.9, 6.93, 6.77); store.add(ns.root); }
+    // ---- general bath: shower, toilet, washer + dryer, vanity ----
+    b.shower(7.55, 6.27, 'S'); b.toilet(8.75, 6.58, 'S'); b.vanity(7.03, 5.2, 'E', 0.9, 1);
+    for (const [y, dr] of [[4.95, true], [5.55, false]]) {
+      const g = b.g(9.0, y, 'W'); b.box(g, 0.6, 0.85, 0.6, M.white, 0, 0, 0); b.box(g, 0.6, 0.03, 0.6, M.white, 0, 0.85, 0);
+      const d = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.03, 24), dr ? M.dark : M.glass); d.rotation.x = Math.PI / 2; d.position.set(0, 0.45, 0.3); g.add(d);
+      b.box(g, 0.5, 0.05, 0.02, M.metal, 0, 0.74, 0.3); b.block(...b.rect(9.0, y, 'W', 0.3, 0.3));
+    }
+    b.box(b.root, 0.62, 0.04, 0.5, M.woodL, 9.0, 1.7, -5.25); b.box(b.root, 0.3, 0.12, 0.25, M.bedAcc, 9.0, 1.74, -5.15);
     // ---- master bath ----
     b.shower(9.95, 6.25, 'S', 1.0, 1.0); b.toilet(9.52, 5.35, 'E'); b.vanity(10.15, 4.58, 'N', 1.4, 2);
-    // ---- master bedroom ----
-    b.rug(14.1, 5.9, 3.1, 2.7, S.rugRound);
-    b.bed(14.1, 6.18, 'S', 1.8, 2.05); b.nightstand(12.95, 7.08, 'S'); b.nightstand(15.2, 7.08, 'S');
-    b.wardrobe(12.05, 7.04, 'S', 1.2); b.tvUnit(13.2, 4.8, 'N', 1.4);
-    b.art(b.root, 14.1, 1.35, -(7.337 - 0.07), 1.3, 0.6, 0, M.bedAcc);
-    b.wardrobe(15.15, 3.98, 'W', 1.0, 2.4, 0.5); b.wardrobe(14.4, 3.74, 'N', 1.3, 2.4, 0.5); b.plant(15.1, 4.8, 1.2);
-    b.curtain(14.0, 7.337, 'S', 1.2, 2.45, 0.05); b.curtain(15.43, 5.96, 'W', 1.2, 2.45, 0.05);
-    // ---- bedroom 3 ----
-    b.rug(13.9, 1.7, 2.6, 2.6, S.rugRound);
-    b.bed(13.8, 1.95, 'E', 1.5, 2.0); b.nightstand(12.95, 1.0, 'E'); b.nightstand(12.95, 2.9, 'E');
-    b.wardrobe(14.6, 3.07, 'S', 1.6); b.desk(14.3, 0.55, 'N', 1.1, 0.55); b.curtain(15.43, 1.55, 'W', 1.2, 2.45, 0.05); b.curtain(14.3, 0.22, 'N', 1.2, 2.45, 0.05);
-    b.plant(15.1, 0.5, 1.2);
-    // ---- mamad bedroom ----
-    b.bed(11.35, 1.72, 'W', 1.6, 2.05); b.nightstand(12.2, 0.75, 'W'); b.nightstand(12.2, 2.7, 'W'); b.wardrobe(9.45, 1.9, 'E', 2.2); b.armchair(10.0, 0.75, 'E'); b.rug(11.0, 1.7, 2.6, 2.4, false);
-    b.plant(9.5, 0.55, 1.0);
-    // ---- hall ----
-    b.rug(9.7, 3.95, 5.0, 0.85, false);
-    b.art(b.root, 9.7, 1.45, -(4.49 - 0.03), 0.9, 0.6, 0);
-    // ---- terrace ----
-    const tk = b.diningTable(-2.0, 2.7, 'E', 2.8, 1.0, 4, true);
-    // pergola over dining
-    const pg = b.g(0, 0, 'S'); const px = [-3.6, -0.5], py = [0.9, 4.5];
-    for (const x of px) for (const y of py) b.box(pg, 0.14, 2.5, 0.14, M.woodF, x, 0, -y);
-    for (let i = 0; i <= 12; i++) b.box(pg, 3.4, 0.06, 0.07, M.woodF, -2.05, 2.5, -(0.9 + i * 0.3));
-    for (const y of py) b.box(pg, 3.4, 0.12, 0.1, M.woodF, -2.05, 2.44, -y); b.box(pg, 0.1, 0.12, 3.8, M.woodF, -3.6, 2.44, -2.7); b.box(pg, 0.1, 0.12, 3.8, M.woodF, -0.5, 2.44, -2.7);
-    b.light(-2.05, 2.7, 2.35, 0.8, 7, '#ffd9a0');
-    for (let i = 0; i < 3; i++) b.pendant(-2.0, 1.6 + i * 1.1, 1.75, 'globe');
-    b.plant(-3.8, 0.5, 1.5, 1); b.plant(-3.8, 5.2, 1.7, 0); b.plant(-3.8, 7.2, 1.4, 1); b.plant(-0.35, 0.4, 1.2, 0);
-    // lounge (north block)
-    b.rug(-2.6, 10.0, 3.2, 2.6, true);
-    b.sofa(-3.35, 10.0, 'E', 2.8, 0.95, 3); b.sofa(-2.3, 11.2, 'S', 1.8, 0.9, 2); b.coffeeTable(-2.2, 10.0, 1.0, 1.0, true); b.armchair(-1.0, 10.0, 'W'); b.sideTable(-1.0, 10.8, 0.25);
-    b.armchair(-1.0, 9.2, 'W');
-    const pg2 = b.g(0, 0, 'S'); for (const x of [-3.9, -0.7]) for (const y of [8.3, 11.5]) b.box(pg2, 0.14, 2.5, 0.14, M.woodF, x, 0, -y);
-    for (let i = 0; i <= 10; i++) b.box(pg2, 3.4, 0.06, 0.07, M.woodF, -2.3, 2.5, -(8.3 + i * 0.32));
-    b.light(-2.3, 9.9, 2.35, 0.6, 7, '#ffd9a0');
-    b.plant(-3.9, 8.0, 1.8, 0); b.plant(-1.2, 11.5, 1.6, 1); b.plant(0.7, 8.0, 1.3, 0); b.plant(-3.9, 11.4, 1.4, 1);
-    // outdoor kitchen against the east wall (x = 2.09)
-    const ok = b.baseRun(2.087, 9.75, 'W', 2.9, 0.62); b.block(1.46, 8.3, 2.09, 11.2);
-    b.box(b.root, 0.9, 0.12, 0.55, M.metal, 1.78, 0.9, -9.75); b.box(b.root, 0.9, 0.35, 0.5, M.metal, 1.78, 0.98, -9.75); // built-in grill
-    b.box(b.root, 0.92, 0.08, 0.5, M.black, 1.78, 1.33, -9.75).rotation.z = 0;
-    b.cyl(b.root, 0.03, 0.4, M.metal, 1.45, 0.98, -9.75, 8);
-    b.box(b.root, 0.6, 0.02, 0.4, M.metal, 1.76, 0.9, -10.6); b.cyl(b.root, 0.012, 0.28, M.metal, 1.5, 0.9, -10.6, 8); // sink
-    b.upperRun(2.087, 10.5, 'W', 1.4, 0.34, 0.75, 1.55);
-    b.fridge(2.087, 8.75, 'W', 0.6);
-    b.island(0.25, 9.75, 'W', 1.8, 0.7); b.pendant(0.25, 9.35, 1.8, 'globe'); b.pendant(0.25, 10.15, 1.8, 'globe');
-    b.light(1.3, 9.75, 2.3, 0.5, 6, '#ffd9a0');
-    // night lamps: pick ~10 points
+    // ---- pergolas with climbing greenery ----
+    const perg = (x0, x1, y0, y1, slats) => {
+      const pg = b.g(0, 0, 'S'); const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+      for (const x of [x0, x1]) for (const y of [y0, y1]) { b.box(pg, 0.14, 2.5, 0.14, M.woodF, x, 0, -y); b.block(x - 0.12, y - 0.12, x + 0.12, y + 0.12); }
+      for (let i = 0; i <= slats; i++) b.box(pg, x1 - x0 + 0.3, 0.06, 0.07, M.woodF, cx, 2.5, -(y0 + (y1 - y0) * i / slats));
+      for (const y of [y0, y1]) b.box(pg, x1 - x0 + 0.3, 0.12, 0.1, M.woodF, cx, 2.44, -y);
+      for (const x of [x0, x1]) b.box(pg, 0.1, 0.12, y1 - y0 + 0.3, M.woodF, x, 2.44, -cy);
+      for (let i = 0; i < 16; i++) b.sph(pg, 0.16 + (i % 3) * 0.04, i % 2 ? M.leaf : M.leaf2, x0 + (x1 - x0) * ((i * 0.37) % 1), 2.6, -(y0 + (y1 - y0) * ((i * 0.61) % 1)), 1.3, 0.55, 1.3);
+    };
+    perg(-3.35, -0.55, 4.2, 7.6, 11); perg(-1.4, 1.15, 8.5, 11.3, 9);
+    // ---- lamps: night lights ----
+    b.light(-1.95, 5.9, 2.35, 0.8, 7, '#ffd9a0'); b.light(-0.1, 9.9, 2.3, 0.7, 7, '#ffd9a0'); b.light(-3.0, 10.0, 2.3, 0.4, 6, '#ffd9a0');
     const LAMPS = [[2.6, 4.9, 2.4, 1.4], [1.2, 6.4, 2.4, 0.8], [4.5, 1.9, 2.4, 1.2], [7.4, 1.9, 2.4, 1.2], [1.4, 2.0, 2.4, 0.9], [9.7, 3.95, 2.4, 0.8], [6.35, 5.6, 2.4, 0.45], [14.0, 5.6, 2.4, 0.9], [14.0, 1.6, 2.4, 0.8], [10.9, 1.7, 2.4, 0.8], [8.2, 5.6, 2.4, 0.5], [10.4, 5.6, 2.4, 0.5]];
     LAMPS.forEach(([x, y, z, i]) => b.light(x, y, z, i, 8, S.glow));
-    // recessed downlights (emissive discs) per room
     const dl = (x0, y0, x1, y1, nx, ny) => { for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) b.fix(b.root, x0 + (x1 - x0) * (i + .5) / nx, H - 0.02, -(y0 + (y1 - y0) * (j + .5) / ny)); };
-    dl(0.4, 3.6, 4.5, 7.3, 4, 4); dl(0.4, 0.4, 2.1, 3.3, 2, 3); dl(2.3, 0.4, 8.8, 3.2, 6, 3); dl(5.8, 3.5, 13.8, 4.4, 8, 1); dl(5.9, 4.7, 6.85, 6.7, 1, 3); dl(7.1, 4.7, 9.2, 6.7, 2, 2); dl(9.5, 4.7, 11.2, 6.7, 2, 2);
+    dl(0.4, 3.6, 4.5, 7.3, 3, 3); dl(0.4, 0.4, 2.1, 3.3, 2, 3); dl(2.3, 0.4, 8.8, 3.2, 6, 3); dl(5.8, 3.5, 13.8, 4.4, 8, 1); dl(5.9, 4.7, 6.85, 6.7, 1, 3); dl(7.1, 4.7, 9.2, 6.7, 2, 2); dl(9.5, 4.7, 11.2, 6.7, 2, 2);
     dl(11.6, 4.7, 15.3, 7.2, 3, 3); dl(12.8, 0.4, 15.3, 3.2, 2, 3); dl(9.3, 0.5, 12.4, 3.0, 3, 2); dl(4.7, 5.0, 5.6, 7.3, 1, 2);
     return b;
   }
+
+  // ---------- editable items ----------
+  W.items = []; const itemsRoot = new THREE.Group(); root.add(itemsRoot); W.itemsRoot = itemsRoot; let staticBlocks = [];
+  const place = (wrap, it) => { wrap.position.set(it.x, 0, -it.y); wrap.rotation.y = it.r; };
+  function buildItem(it) {
+    const b = new Builder(STYLES[W.style]); TYPES[it.t].make(b, it, it.p);
+    const m = merge(b.root); const wrap = new THREE.Group(); wrap.add(m); wrap.userData.itemId = it.id; place(wrap, it); return wrap;
+  }
+  const objs = new Map();
+  const disposeObj = (o) => { itemsRoot.remove(o); o.traverse(x => x.geometry && x.geometry.dispose()); };
+  W.placeItem = (it) => { const o = objs.get(it.id); if (o) place(o, it); };
+  W.rebuildItem = (it) => { const o = objs.get(it.id); if (o) disposeObj(o); const n = buildItem(it); objs.set(it.id, n); itemsRoot.add(n); return n; };
+  W.removeItem = (id) => { const o = objs.get(id); if (o) { disposeObj(o); objs.delete(id); } };
+  W.setItems = (list) => { for (const id of [...objs.keys()]) W.removeItem(id); W.items = list; for (const it of list) { const n = buildItem(it); objs.set(it.id, n); itemsRoot.add(n); } W.refreshBlocks(); };
+  W.itemObj = (id) => objs.get(id);
+  W.refreshBlocks = () => { W.blocks = staticBlocks.concat(W.items.map(footprint).filter(f => !f.noBlock).map(f => f.aabb)); };
 
   W.setStyle = (key) => {
     W.style = key; const S = applyStyle(key);
     if (furnM) { furnM.traverse(o => o.geometry && o.geometry.dispose()); furnGroup.remove(furnM); }
     lampLights.splice(0).forEach(l => { furnGroup.remove(l); l.dispose && l.dispose(); });
-    const b = layout(S, key);
-    // root of builder holds raw meshes; merge them
+    const b = staticLayout(S, key);
     furnM = merge(b.root); furnGroup.add(furnM);
     nicheBarM = merge(b.niche.bar); nicheStoreM = merge(b.niche.store); furnM.add(nicheBarM, nicheStoreM);
     nicheBarM.visible = W.niche === 'bar'; nicheStoreM.visible = W.niche === 'store';
-    W.blocks = b.blocks;
+    staticBlocks = b.blocks;
     const maxL = mobile ? 8 : 12; b.lights.slice(0, maxL).forEach(l => { const pl = new THREE.PointLight(l.color || S.glow, 0, l.dist, 2); pl.position.set(l.x, l.y, l.z); pl.userData.base = l.intensity * 5.5; furnGroup.add(pl); lampLights.push(pl); });
+    if (!W.itemsInit) { W.itemsInit = true; W.setItems(initialItems()); } else W.setItems(W.items);
     scene.background = null; tick(0.0001); W.onStyle && W.onStyle(key);
   };
   W.setNiche = (mode) => { W.niche = mode; if (nicheBarM) { nicheBarM.visible = mode === 'bar'; nicheStoreM.visible = mode === 'store'; } };
