@@ -52,10 +52,10 @@ export class FP {
     this.ty = this.yaw; this.tp = 0; this.lookGain = 1;
   }
   setPos(x, y) { [this.x, this.y] = this.grid.nearest(x, y); }
-  lookAt(px, py) { const dx = px - this.x, dy = py - this.y; this.ty = Math.atan2(-dx, dy); this.tp = -0.04; }
+  lookAt(px, py, pitch = -0.04) { const dx = px - this.x, dy = py - this.y; this.ty = Math.atan2(-dx, dy); this.tp = pitch; }
   place(x, y, lx, ly) { this.setPos(x, y); this.lookAt(lx, ly); this.yaw = this.ty; this.pitch = this.tp; this.path = null; }
-  goto(x, y, lx, ly) {
-    this.path = this.grid.path([this.x, this.y], [x, y]); this.path.shift(); this.final = lx !== undefined ? [lx, ly] : null; this.auto = true;
+  goto(x, y, lx, ly, pitch) {
+    this.path = this.grid.path([this.x, this.y], [x, y]); this.path.shift(); this.final = lx !== undefined ? [lx, ly] : null; this.fpitch = pitch === undefined ? -0.04 : pitch; this.auto = true;
   }
   cancel() { this.path = null; this.final = null; this.auto = false; }
   rotate(dx, dy) { this.ty -= dx * 0.0042 * this.lookGain; this.tp = Math.max(-1.25, Math.min(1.25, this.tp - dy * 0.0042 * this.lookGain)); this.yaw = this.ty; this.pitch = this.tp; }
@@ -68,7 +68,7 @@ export class FP {
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw); let wx = 0, wy = 0;
     if (this.path && this.path.length) {
       const t = this.path[0], dx = t[0] - this.x, dy = t[1] - this.y, d = Math.hypot(dx, dy);
-      if (d < 0.12) { this.path.shift(); if (!this.path.length) { this.path = null; this.auto = false; if (this.final) this.lookAt(...this.final); } }
+      if (d < 0.12) { this.path.shift(); if (!this.path.length) { this.path = null; this.auto = false; if (this.final) this.lookAt(this.final[0], this.final[1], this.fpitch); } }
       else { wx = dx / d * Math.min(1, d * 3 + 0.25); wy = dy / d * Math.min(1, d * 3 + 0.25); if (!this.final || this.path.length > 1) { this.ty = Math.atan2(-dx, dy); this.tp += (-0.05 - this.tp) * Math.min(1, dt * 3); } else { this.lookAt(...this.final); } }
     } else { wx = (-s * iy + c * ix); wy = (c * iy + s * ix); }
     const sp = this.speed * (this.path ? 1.0 : 1.0), a = 1 - Math.exp(-dt * 7);

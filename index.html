@@ -67,7 +67,7 @@ body.pointer #joy{display:none}
 #dock button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 #dock button.on{color:var(--gold2);background:rgba(220,185,126,.12)}
 /* sheet */
-#sheet{position:absolute;left:50%;transform:translate(-50%,24px);bottom:calc(var(--sa) + 92px);width:min(94vw,560px);max-height:58dvh;overflow:auto;padding:18px;opacity:0;pointer-events:none;transition:all .45s var(--ease);touch-action:pan-y;-webkit-overflow-scrolling:touch}
+#sheet{position:absolute;left:50%;transform:translate(-50%,24px);bottom:calc(var(--sa) + 92px);width:min(94vw,560px);max-height:42dvh;overflow:auto;padding:18px;opacity:0;pointer-events:none;transition:all .45s var(--ease);touch-action:pan-y;-webkit-overflow-scrolling:touch}
 #sheet.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 #sheet h4{margin:0 0 12px;font-size:var(--t3);font-weight:600}
 #sheet h5{margin:16px 0 8px;font-size:var(--t1);font-weight:500;color:var(--mut);letter-spacing:.6px}
@@ -132,11 +132,13 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radiu
 #editbar button{padding:9px 11px;border-radius:13px;font-size:var(--t2);color:var(--ink);transition:background .25s}
 #editbar button:disabled{opacity:.32}#editbar button:active{background:rgba(255,255,255,.1)}
 #editbar button.done{background:linear-gradient(180deg,#f3dfb6,#d4ad6c);color:#241a08;font-weight:600}
-#selbar{position:absolute;left:50%;bottom:calc(var(--sa) + 250px);transform:translate(-50%,12px);width:min(94vw,470px);padding:10px 12px;border-radius:20px;opacity:0;pointer-events:none;transition:all .4s var(--ease);z-index:3}
+#selbar{position:absolute;left:50%;bottom:calc(var(--sa) + 12px);transform:translate(-50%,24px);width:min(96vw,500px);padding:10px 12px 12px;border-radius:24px;opacity:0;pointer-events:none;transition:all .45s var(--ease);z-index:4}
 #selbar.on{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
-#selbar b{display:block;font-size:var(--t2);font-weight:600;color:var(--gold2);margin:0 4px 6px}
-#selbar .r{display:flex;flex-wrap:wrap;gap:6px}
-#selbar button{padding:10px 12px;border-radius:13px;font-size:var(--t2);background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line);transition:transform .2s var(--ease)}
+#selbar .sbh{display:flex;align-items:center;justify-content:space-between;margin:0 4px 8px}#selbar b{font-size:var(--t3);font-weight:600;color:var(--gold2)}
+#selbar #sbDone{padding:8px 16px;border-radius:99px;background:linear-gradient(180deg,#f3dfb6,#d4ad6c);color:#241a08;font-weight:600;font-size:var(--t2);box-shadow:none}
+#selbar .sws{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:2px 2px 4px}#selbar .sws::-webkit-scrollbar{display:none}#selbar .sws>*{flex:none}
+#selbar .r{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}#selbar .r::-webkit-scrollbar{display:none}
+#selbar .r button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 7px;border-radius:15px;font-size:var(--t3);line-height:1.1;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line);transition:transform .2s var(--ease)}#selbar .r small{font-size:var(--t1);color:var(--mut)}
 #selbar button:active{transform:scale(.95)}#selbar .del{color:#ffb3a6}
 .swrow{display:flex;gap:10px;overflow-x:auto;padding:6px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.swrow::-webkit-scrollbar{display:none}
 .swb{flex:none;width:70px;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:var(--t1);color:var(--mut);transition:color .2s}
@@ -145,7 +147,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radiu
 .sizes{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:var(--t1);color:var(--mut)}.sizes span{margin-left:4px}
 .sws{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 4px 8px}.swc{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.2);transition:transform .2s var(--ease)}.swc:active{transform:scale(.9)}.swc.on{box-shadow:0 0 0 3px var(--gold2)}
 .sw0{padding:6px 11px;font-size:var(--t1);border-radius:99px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line)}.sw0.on{color:var(--gold2);box-shadow:inset 0 0 0 1px rgba(240,217,173,.6)}
-#sheet.compact{max-height:none;padding:12px 14px 12px;bottom:calc(var(--sa) + 90px)}
+#sheet.compact{max-height:42dvh;padding:12px 14px 12px;bottom:calc(var(--sa) + 90px)}
 body.pointer #joy{display:none}
 #grab{position:absolute;left:0;top:0;width:62px;height:62px;margin:-31px 0 0 -31px;border-radius:50%;display:none;place-items:center;background:radial-gradient(circle at 35% 30%,#f6e3bd,#c99f5e);box-shadow:0 0 0 7px rgba(240,217,173,.28),0 14px 30px -8px rgba(0,0,0,.7);touch-action:none;z-index:4;transition:box-shadow .2s var(--ease)}
 #grab.on{display:grid}#grab.drag{box-shadow:0 0 0 12px rgba(240,217,173,.38),0 18px 36px -8px rgba(0,0,0,.7)}
@@ -161,10 +163,23 @@ body.pointer #joy{display:none}
 body.touring #modes{opacity:0;pointer-events:none}
 @media (max-width:420px){#dock button{width:52px}#modes button{padding:9px 12px}}
 @media (orientation:landscape) and (max-height:520px){
-  #selbar{bottom:calc(var(--sa) + 76px);left:62%;width:min(54vw,470px)}
+  #selbar{bottom:calc(var(--sa) + 10px);left:64%;width:min(52vw,470px)}#roombar{left:64%;width:min(52vw,470px);bottom:calc(var(--sa) + 76px)}
   #dock{bottom:calc(var(--sa) + 8px)}#sheet{bottom:calc(var(--sa) + 76px);max-height:calc(100dvh - 160px)}#joy{bottom:calc(var(--sa) + 84px);width:112px;height:112px}
   #mini{width:112px;height:72px}#intro .card{max-width:420px}#intro{place-items:center end;padding-right:5vw}
 }
+
+/* v6: stage layout. The 3D view recentres above whatever panel is open, so you always see what you edit */
+#dock{transition:transform .45s var(--ease),opacity .3s}
+body.sel #dock{transform:translate(-50%,130%);opacity:0;pointer-events:none}
+body.sel #joy,body.sel #roomlbl,body.sel #roombar{opacity:0;pointer-events:none}
+#roombar{position:absolute;left:50%;bottom:calc(var(--sa) + 92px);transform:translate(-50%,16px);width:min(96vw,560px);padding:10px 12px 10px;border-radius:22px;opacity:0;pointer-events:none;transition:all .45s var(--ease);z-index:2}
+#roombar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#roombar .rbh{display:flex;align-items:center;justify-content:space-between;margin:0 4px 8px}#roombar b{font-size:var(--t3);font-weight:600}
+#roombar #rbX{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.08);color:var(--mut);font-size:var(--t1)}
+#roombar .rc{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:1px 1px 3px}#roombar .rc::-webkit-scrollbar{display:none}
+#roombar .rc button{flex:none;display:flex;align-items:center;gap:6px;padding:9px 13px;border-radius:99px;font-size:var(--t2);background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line);transition:transform .2s var(--ease)}
+#roombar .rc button:active{transform:scale(.95)}#roombar .rc button.pri{background:linear-gradient(180deg,#f3dfb6,#d4ad6c);color:#241a08;font-weight:600;box-shadow:none}
+body.sheeton #roombar{opacity:0;pointer-events:none}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
@@ -213,7 +228,8 @@ body.touring #modes{opacity:0;pointer-events:none}
     <div id="joy"><i></i></div>
     <button id="grab" aria-label="גרור להזזה"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
     <div id="editbar" class="glass"><button id="ebUndo" aria-label="בטל">בטל</button><button id="ebRedo" aria-label="בצע שוב">בצע שוב</button><button id="ebAdd">הוסף</button><button id="ebOrig">מקור</button><button id="ebDone" class="done">סיום</button></div>
-    <div id="selbar" class="glass"><b id="sbName"></b><div class="sws" id="sbSw"></div><div class="r"><button id="sbL" aria-label="סובב 90 שמאלה">⟲ 90°</button><button id="sbL15">‹ 15°</button><button id="sbR15">15° ›</button><button id="sbR" aria-label="סובב 90 ימינה">⟳ 90°</button><button id="sbSwap">החלף</button><button id="sbExt">פתח / סגור</button><button id="sbDup">שכפל</button><button id="sbDel" class="del">מחק</button></div></div>
+    <div id="selbar" class="glass"><div class="sbh"><b id="sbName"></b><button id="sbDone">סיום ✓</button></div><div class="sws" id="sbSw"></div><div class="r"><button id="sbL" aria-label="סובב 90 שמאלה">⟲<small>שמאלה</small></button><button id="sbR" aria-label="סובב 90 ימינה">⟳<small>ימינה</small></button><button id="sbL15" aria-label="סובב מעט שמאלה">‹<small>15°</small></button><button id="sbR15" aria-label="סובב מעט ימינה">›<small>15°</small></button><button id="sbSwap">⇄<small>החלף</small></button><button id="sbExt">⤢<small>פתח</small></button><button id="sbDup">⧉<small>שכפל</small></button><button id="sbDel" class="del">✕<small>מחק</small></button></div></div>
+    <div id="roombar" class="glass"><div class="rbh"><b id="rbN"></b><button id="rbX" aria-label="סגור">✕</button></div><div class="rc" id="rbC"></div></div>
     <div id="sheet" class="glass"></div>
     <div id="dock" class="glass">
       <button data-p="rooms"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>חדרים</button>

@@ -71,13 +71,13 @@ export function createEditor(ctx) {
 
   // ---- selection by tap, movement only through the gold handle (never fights camera gestures) ----
   const grab = document.getElementById('grab');
-  const pick = (cx, cy) => {
+  const pick = (cx, cy, solidOnly) => {
     const v = new THREE.Vector2(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(v, ctx.camera());
     const hits = ray.intersectObjects(W.itemsRoot.children, true); let flat = null;
     for (const h of hits) { let o = h.object; while (o && !o.userData.itemId) o = o.parent; if (!o) continue; const it = W.items.find(i => i.id === o.userData.itemId); if (!it) continue; if (footprint(it).noBlock) { flat = flat || it.id; continue; } return it.id; }
-    return flat;
+    return solidOnly ? null : flat;
   };
-  ed.tap = (cx, cy) => { if (!ed.on) return false; const id = pick(cx, cy); if (id) { ed.sel = id; showHL(); ui(); return true; } if (ed.sel) { ed.sel = null; showHL(); ui(); } return false; };
+  ed.tap = (cx, cy) => { const id = pick(cx, cy, !ed.on); if (id) { if (!ed.on) ctx.autoEnter && ctx.autoEnter(); ed.sel = id; showHL(); ui(); return true; } if (!ed.on) return false; if (ed.sel) { ed.sel = null; showHL(); ui(); } return false; };
   let drag = null;
   grab.addEventListener('pointerdown', e => {
     const it = ed.selected(); if (!it) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return;
@@ -97,7 +97,8 @@ export function createEditor(ctx) {
     const it = ed.on && ed.selected(); if (!it) { grab.classList.remove('on'); return; }
     const f = footprint(it); pv.set(f.c[0], 0.9, -f.c[1]).project(ctx.camera());
     if (pv.z > 1 || pv.z < -1) { grab.classList.remove('on'); return; }
-    const x = Math.max(34, Math.min(innerWidth - 34, (pv.x + 1) / 2 * innerWidth)), y = Math.max(110, Math.min(innerHeight - 150, (1 - pv.y) / 2 * innerHeight));
+    const st = ctx.stage ? ctx.stage() : { top: 110, bottom: innerHeight - 150 };
+    const x = Math.max(34, Math.min(innerWidth - 34, (pv.x + 1) / 2 * innerWidth)), y = Math.max(st.top + 10, Math.min(st.bottom - 40, (1 - pv.y) / 2 * innerHeight));
     grab.style.transform = `translate(${x}px,${y}px)`; grab.classList.add('on');
   };
   ed.isValid = valid; ed.refreshHL = showHL;

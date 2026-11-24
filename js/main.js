@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { PLAN } from './plan.js';
 import { createWorld, ROOMS } from './world.js';
+import { footprint } from './items.js';
 import { STYLES, isPhoto, setPhoto, applyPhotos, FIN, OPT, setFin, resetFin, preloadAll } from './materials.js';
 import { Grid, FP, Tour } from './nav.js';
 import { createEditor } from './edit.js';
@@ -36,12 +37,12 @@ function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); aspect = w / h; camera.aspect = aspect;
   camera.fov = aspect < 0.8 ? 80 : aspect < 1.2 ? 74 : 68; camera.updateProjectionMatrix();
 }
-addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250)); resize();
+addEventListener('resize', () => { resize(); typeof stageMeasure === 'function' && stageMeasure(); }); addEventListener('orientationchange', () => setTimeout(resize, 250)); resize();
 
 // ---------- helpers ----------
 const toast = (t, ms = 1900) => { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), ms); };
 const TOP = () => { const d = aspect < 0.8 ? 30 : aspect < 1.2 ? 25 : 19; return { pos: new THREE.Vector3(6, d * 0.9, 5.2 + d * 0.28), tgt: new THREE.Vector3(5.4, 0, -5.2) }; };
-function applyCeiling() { W.setLayer('ceiling', S.layers.ceiling && S.mode !== 'top' && S.mode !== 'intro'); }
+function applyCeiling() { W.setLayer('ceiling', S.layers.ceiling && S.mode !== 'top' && S.mode !== 'intro'); W.setLayer('walls', S.layers.walls && !(S.mode === 'top' && S.ovr)); }
 function fly(toPos, toTgt, dur = 1.1, done) {
   const p0 = camera.position.clone(), q0 = camera.quaternion.clone();
   const m = new THREE.Matrix4().lookAt(toPos, toTgt, new THREE.Vector3(0, 1, 0)); const q1 = new THREE.Quaternion().setFromRotationMatrix(m);
@@ -70,7 +71,7 @@ function showRoomLabel(id) {
 
 // ---------- modes ----------
 function setMode(m, opts = {}) {
-  const prev = S.mode; S.mode = m;
+  const prev = S.mode; S.mode = m; S.ovr = false;
   $('mWalk').classList.toggle('on', m === 'walk'); $('mTop').classList.toggle('on', m === 'top'); $('mTour').classList.toggle('on', m === 'tour');
   document.body.classList.toggle('nojoy', m !== 'walk' && m !== 'tour');
   applyCeiling();
@@ -89,15 +90,30 @@ function enterAt(r, instantLook = false) {
   const cp = new THREE.Vector3(fp.x, fp.eye, -fp.y), look = new THREE.Vector3(r.look[0], fp.eye - 0.1, -r.look[1]);
   fly(cp, look, 1.2, () => { fp.yaw = fp.ty; fp.pitch = fp.tp; fp.apply(); });
 }
-function goRoom(id) {
-  const r = ROOMMAP[id]; if (!r) return; closePanel();
-  if (S.mode === 'top') { S.mode = 'walk'; setModeUI('walk'); applyCeiling(); orbit.enabled = false; enterAt(r); return; }
-  if (S.mode === 'tour') tour.stop();
-  const d = Math.hypot(fp.x - r.pos[0], fp.y - r.pos[1]);
-  if (d > 14) { enterAt(r); } else fp.goto(r.pos[0], r.pos[1], r.look[0], r.look[1]);
-  showRoomLabel(id);
+const OVERVIEW = new Set(['master', 'bed3', 'mamad', 'bath', 'masterbath', 'niche', 'dining']);
+function roomOverview(id) {
+  const rects = PLAN.rooms[id]; if (!rects) return false;
+  const x0 = Math.min(...rects.map(r => r[0])), x1 = Math.max(...rects.map(r => r[2])), y0 = Math.min(...rects.map(r => r[1])), y1 = Math.max(...rects.map(r => r[3]));
+  const w = x1 - x0, h = y1 - y0, tgt = new THREE.Vector3((x0 + x1) / 2, 0, -(y0 + y1) / 2 - 0.15);
+  const vf = camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
+  const dist = Math.max(4.6, Math.max((w * 0.62) / Math.tan(hf / 2), (h * 0.62) / Math.tan(vf / 2)) + 1.6), pit = 1.28;
+  const pos = new THREE.Vector3(tgt.x, dist * Math.sin(pit), tgt.z + dist * Math.cos(pit));
+  fp.cancel(); if (tour.active) tour.stop(); orbit.enabled = false; S.mode = 'top'; S.ovr = true; setModeUI('top'); S.ovr = true; applyCeiling();
+  orbit.target.copy(tgt); fly(pos, tgt, 1.1, () => { orbit.target.copy(tgt); orbit.enabled = true; orbit.update(); });
+  const r = ROOMMAP[id]; $('rlN').textContent = r.name; showRoomBar(id); S.rbRoom = id; return true;
 }
-function setModeUI(m) { S.mode = m; if (m === 'tour') editExit(); document.body.classList.toggle('touring', m === 'tour'); $('mWalk').classList.toggle('on', m === 'walk'); $('mTop').classList.toggle('on', m === 'top'); $('mTour').classList.toggle('on', m === 'tour'); document.body.classList.toggle('nojoy', m === 'top'); }
+function goRoom(id, how) {
+  const r = ROOMMAP[id]; if (!r) return; closePanel();
+  const over = how ? how === 'over' : OVERVIEW.has(id);
+  if (over && PLAN.rooms[id]) { roomOverview(id); return; }
+  if (S.mode === 'top') { S.mode = 'walk'; setModeUI('walk'); applyCeiling(); orbit.enabled = false; const bv0 = AUTOVIEW.has(id) ? bestView(id) : null; enterAt(bv0 ? { pos: bv0.pos, look: bv0.look } : r); showRoomLabel(id); setTimeout(() => showRoomBar(id), 1500); return; }
+  if (S.mode === 'tour') tour.stop();
+  const bv = AUTOVIEW.has(id) ? bestView(id) : null; const rr = bv ? { pos: bv.pos, look: bv.look } : r;
+  const d = Math.hypot(fp.x - rr.pos[0], fp.y - rr.pos[1]);
+  if (d > 14) { enterAt(rr); } else fp.goto(rr.pos[0], rr.pos[1], rr.look[0], rr.look[1], bv ? -0.24 : undefined);
+  showRoomLabel(id); setTimeout(() => showRoomBar(id), 900);
+}
+function setModeUI(m) { S.mode = m; if (m !== 'top') S.ovr = false; if (m === 'tour') editExit(); document.body.classList.toggle('touring', m === 'tour'); $('mWalk').classList.toggle('on', m === 'walk'); $('mTop').classList.toggle('on', m === 'top'); $('mTour').classList.toggle('on', m === 'tour'); document.body.classList.toggle('nojoy', m === 'top'); }
 
 // ---------- tour ----------
 const STOPS_LONG = [
@@ -128,6 +144,95 @@ $('tbNext').onclick = () => tour.next(); $('tbPrev').onclick = () => tour.prev()
 function setStyle(k, quiet) { S.style = k; W.setStyle(k); rebuildGrid(); ed.refreshHL(); document.querySelectorAll('[data-style]').forEach(e => e.classList.toggle('on', e.dataset.style === k)); if (!quiet) toast(STYLES[k].name); updateHash(); }
 function setTime(k, quiet) { S.time = k; W.setTime(k); document.querySelectorAll('[data-time]').forEach(e => e.classList.toggle('on', e.dataset.time === k)); if (!quiet) toast(W.TIMES[k].label + (' · הדגמת אור')); updateHash(); }
 function rebuildGrid() { const g = new Grid(W.walkRects, W.solids, W.blocks); fp.grid = g; }
+
+
+// ---------- stage: the 3D view recentres above any open panel, so the thing you edit stays in front of your eyes ----------
+const LAND = matchMedia('(orientation:landscape) and (max-height:520px)');
+const stg = { top: 90, bottom: innerHeight, cur: 0, tgt: 0 };
+function stageMeasure() {
+  const H = innerHeight, narrow = innerWidth <= 640; stg.top = (narrow ? 150 : 84) + (ed && ed.on ? (narrow ? 58 : 52) : 0);
+  let b = 0;
+  if (!LAND.matches) {
+    if (sheet.classList.contains('on')) b = sheet.offsetHeight + 96;
+    else if ($('selbar').classList.contains('on')) b = $('selbar').offsetHeight + 18;
+  }
+  stg.bottom = H - b; stg.tgt = b ? Math.min(H * 0.34, Math.max(0, b - stg.top) / 2) : 0;
+  document.body.classList.toggle('sheeton', sheet.classList.contains('on'));
+}
+function stageApply(dt) {
+  if (S.mode === 'intro' || S.mode === 'tour') return;
+  stg.cur += (stg.tgt - stg.cur) * (1 - Math.exp(-dt * 9));
+  if (Math.abs(stg.cur - stg.tgt) < 0.4) stg.cur = stg.tgt;
+  if (Math.abs(stg.cur) < 0.4) { if (camera.view && camera.view.enabled) { camera.clearViewOffset(); } }
+  else camera.setViewOffset(innerWidth, innerHeight, 0, stg.cur, innerWidth, innerHeight);
+}
+const _v = new THREE.Vector3();
+function frameItem(it) {
+  if (it && S.mode === 'top' && orbit.enabled) {
+    const f0 = footprint(it), t = new THREE.Vector3(f0.c[0], 0, -f0.c[1]), dl = t.clone().sub(orbit.target); dl.y = 0;
+    if (dl.length() > 0.25) { const np = camera.position.clone().add(dl); orbit.enabled = false; fly(np, t, 0.7, () => { orbit.target.copy(t); orbit.enabled = true; orbit.update(); }); }
+    return;
+  }
+  if (!it || S.mode === 'top' || S.mode === 'tour' || S.mode === 'intro') return;
+  const f = footprint(it), c = f.c, half = Math.max(f.w, f.d) / 2;
+  const d = Math.hypot(c[0] - fp.x, c[1] - fp.y);
+  _v.set(c[0], 0.5, -c[1]).project(camera);
+  const yT = (1 - _v.y) / 2 * innerHeight + stg.cur - stg.tgt, xT = (_v.x + 1) / 2 * innerWidth;
+  const sr = { top: stg.top + 20, bottom: stg.bottom - 30 };
+  const tip = [c[0] + (fp.x - c[0]) / (d || 1) * (half + 0.25), c[1] + (fp.y - c[1]) / (d || 1) * (half + 0.25)];
+  const seen = _v.z < 1 && xT > 50 && xT < innerWidth - 50 && yT > sr.top && yT < sr.bottom && d < 5.2 && d > half + 0.9 && grid.los([fp.x, fp.y], tip) && roomAt(fp.x, fp.y) === roomAt(c[0], c[1]);
+  if (seen) return;
+  const D0 = Math.min(3.6, Math.max(2.3, half + 1.7)), a0 = d > 0.3 ? Math.atan2(fp.y - c[1], fp.x - c[0]) : it.r + Math.PI / 2, rc = roomAt(c[0], c[1]);
+  let best = null, soft = null;
+  for (const D of [D0, D0 - 0.5, D0 - 1, D0 + 0.6]) for (const da of [0, 0.6, -0.6, 1.2, -1.2, 1.9, -1.9, 2.6, 3.14]) {
+    const a = a0 + da, p = [c[0] + Math.cos(a) * D, c[1] + Math.sin(a) * D];
+    if (!grid.ok(p[0], p[1]) || roomAt(p[0], p[1]) !== rc) continue;
+    const q = [c[0] + Math.cos(a) * (half + 0.25), c[1] + Math.sin(a) * (half + 0.25)];
+    if (grid.los(p, q)) { best = p; break; } soft = soft || p;
+  }
+  if (best || soft) { const p = best || soft; fp.goto(p[0], p[1], c[0], c[1], -0.2); } else { fp.cancel(); fp.lookAt(c[0], c[1], -0.2); }
+}
+
+// ---------- best comfortable view of a room (computed from the CURRENT layout, so it adapts to your edits) ----------
+const AUTOVIEW = new Set(['master', 'bed3', 'mamad', 'bath', 'masterbath', 'niche', 'dining']);
+function bestView(id) {
+  const rects = PLAN.rooms[id]; if (!rects) return null;
+  const inRm = (x, y) => roomAt(x, y) === id, ok = (x, y) => grid.ok(x, y) && inRm(x, y);
+  const lat = [], cands = [];
+  for (const r of rects) for (let x = r[0] + 0.3; x < r[2]; x += 0.45) for (let y = r[1] + 0.3; y < r[3]; y += 0.45) if (ok(x, y)) lat.push([x, y]);
+  for (const r of rects) for (let x = r[0] + 0.45; x < r[2] - 0.3; x += 0.3) for (let y = r[1] + 0.45; y < r[3] - 0.3; y += 0.3) if (ok(x, y) && ok(x + 0.3, y) && ok(x - 0.3, y) && ok(x, y + 0.3) && ok(x, y - 0.3)) cands.push([x, y]);
+  if (!lat.length || !cands.length) return null;
+  const cx = lat.reduce((s, p) => s + p[0], 0) / lat.length, cy = lat.reduce((s, p) => s + p[1], 0) / lat.length;
+  const its = roomItems(id).map(i => { const f = footprint(i); return { c: f.c, s: Math.hypot(f.w, f.d) / 2 + 0.5, w: 1 + f.w * f.d * 0.8 }; }); if (its.length) its.reduce((b, t) => t.w > b.w ? t : b, its[0]).w += 4;
+  let best = null, bs = -1;
+  for (const cd of cands) {
+    if (Math.hypot(cx - cd[0], cy - cd[1]) < 0.9) continue;
+    const vis = (t, short) => { const d = Math.hypot(t[0] - cd[0], t[1] - cd[1]); if (d < 0.9 || d > 8) return null; const k = Math.max(0, d - short) / d; return grid.los(cd, [cd[0] + (t[0] - cd[0]) * k, cd[1] + (t[1] - cd[1]) * k]) ? Math.atan2(-(t[0] - cd[0]), t[1] - cd[1]) : null; };
+    const vi = its.map(t => ({ a: vis(t.c, t.s), w: t.w })), vl = lat.map(t => ({ a: vis(t, 0), w: 0.1 }));
+    const a0 = Math.atan2(-(cx - cd[0]), cy - cd[1]);
+    for (const da of [0, 0.18, -0.18, 0.36, -0.36]) {
+      const ya = a0 + da; let s = 0, dep = 0; while (dep < 6 && grid.ok(cd[0] - Math.sin(ya) * (dep + 0.1), cd[1] + Math.cos(ya) * (dep + 0.1))) dep += 0.15;
+      for (const o of vi.concat(vl)) { if (o.a == null) continue; let d = o.a - ya; d = Math.atan2(Math.sin(d), Math.cos(d)); if (Math.abs(d) < 0.43) s += o.w * (1 - Math.abs(d) * 0.6); }
+      s *= Math.min(1, dep / 2.8); if (s > bs) { bs = s; best = { pos: cd, yaw: ya }; }
+    }
+  }
+  if (!best) return null; const yv = best.yaw;
+  return { pos: best.pos, look: [best.pos[0] - Math.sin(yv) * 3, best.pos[1] + Math.cos(yv) * 3] };
+}
+function roomItems(id) { return W.items.filter(i => roomAt(i.x, i.y) === id && !footprint(i).noBlock); }
+function showRoomBar(id) {
+  const r = ROOMMAP[id]; const el = $('roombar'); if (!r || S.mode === 'tour' || (S.mode === 'top' && !S.ovr)) { el.classList.remove('on'); return; }
+  S.rbRoom = id; $('rbN').textContent = r.name;
+  const its = roomItems(id).slice(0, 14);
+  const canOver = !!PLAN.rooms[id]; $('rbC').innerHTML = `<button class="pri" data-rb="add">＋ הוסף</button>` + (canOver ? `<button data-rb="view">${S.ovr ? '🚶 כניסה לחדר' : '⬇ מבט מלמעלה'}</button>` : '') + `<button data-rb="fin">גימורים</button>` + its.map(i => `<button data-rb-sel="${i.id}"><span>${ICONS[i.t] || '▫️'}</span>${TYPES[i.t].label}</button>`).join('');
+  el.classList.add('on');
+}
+$('rbX').onclick = () => $('roombar').classList.remove('on');
+$('rbC').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.rb === 'add') { enterEdit(true); openPanel('edit'); } else if (b.dataset.rb === 'fin') { openPanel('finish'); } else if (b.dataset.rb === 'view') { goRoom(S.rbRoom, S.ovr ? 'walk' : 'over'); }
+  else if (b.dataset.rbSel) { enterEdit(true); ed.select(+b.dataset.rbSel); }
+});
 
 // ---------- panels ----------
 const sheet = $('sheet');
@@ -166,20 +271,28 @@ function favs() { try { return JSON.parse(localStorage.getItem('apt23favs') || '
 function openPanel(p) {
   if (S.panel === p) return closePanel(); S.panel = p; if (p === 'finish') preloadAll(); sheet.innerHTML = PANELS[p](); sheet.classList.toggle('compact', p === 'finish'); sheet.classList.add('on'); sheet.scrollTop = 0;
   document.querySelectorAll('#dock button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
-  $('roomlbl').classList.remove('on');
+  $('roomlbl').classList.remove('on'); stageMeasure(); setTimeout(stageMeasure, 80);
+  if (p === 'finish') finPitch();
 }
-function closePanel() { S.panel = null; sheet.classList.remove('on'); sheet.classList.remove('compact'); document.querySelectorAll('#dock button').forEach(b => b.classList.remove('on')); }
+function closePanel() { S.panel = null; sheet.classList.remove('on'); sheet.classList.remove('compact'); document.querySelectorAll('#dock button').forEach(b => b.classList.remove('on')); stageMeasure(); }
+new MutationObserver(() => stageMeasure()).observe(sheet, { childList: true });
+// when choosing floors, tilt the view down so the floor is what you see
+function finPitch() { if (S.mode === 'walk' && !fp.auto) fp.tp = ['floor', 'wood', 'bath'].includes(S.fin) ? -0.5 : S.fin === 'wall' || S.fin === 'cab' ? -0.05 : -0.18; }
 document.querySelectorAll('#dock button').forEach(b => b.onclick = () => { if (b.dataset.p === 'edit' && S.panel !== 'edit') enterEdit(); openPanel(b.dataset.p); });
-function enterEdit() { if (tour.active) tour.stop(false); ed.enter(); $('editbar').classList.add('on'); if (!S.editHint) { S.editHint = 1; toast('הקישו על פריט כדי לבחור, וגררו את הידית הזהובה כדי להזיז', 4500); } }
-function editExit() { if (!ed.on) return; ed.exit(); $('editbar').classList.remove('on'); $('selbar').classList.remove('on'); }
+function enterEdit(quiet) { if (tour.active) tour.stop(false); ed.enter(); $('editbar').classList.add('on'); if (!quiet && !S.editHint) { S.editHint = 1; toast('הקישו על פריט כדי לבחור, וגררו את הידית הזהובה כדי להזיז', 4500); } }
+function editExit() { if (!ed.on) return; ed.exit(); $('editbar').classList.remove('on'); $('selbar').classList.remove('on'); document.body.classList.remove('sel'); S.selId = null; stageMeasure(); }
 function updateEditUI(e) {
-  $('selbar').classList.toggle('on', e.on && !!e.sel); const it = e.selected();
+  const selNow = e.on && e.sel ? e.sel : null, selWas = S.selId; S.selId = selNow;
+  $('selbar').classList.toggle('on', !!selNow); document.body.classList.toggle('sel', !!selNow); const it = e.selected();
   $('sbExt').style.display = it && TYPES[it.t].ext ? '' : 'none'; $('sbSwap').style.display = it && TYPES[it.t].variants ? '' : 'none';
   const SWC = { fab: ['#d3c6b0', '#b9b7b1', '#ece5d8', '#a9b59a', '#b9785a', '#47556b', '#55565a', '#8a8f66'], wood: ['#d8b88a', '#c08e58', '#8a5a36', '#5a3d2b', '#b9b2a6', '#2f2a26'], cab: ['#f1efe9', '#cfc7ba', '#9fae92', '#7f8f6c', '#3d4a5e', '#3a3b3d', '#b8745a', '#c8a674'] };
   const KIND = { sofa: 'fab', armchair: 'fab', bed: 'fab', wardrobe: 'cab', tall: 'cab', closet: 'cab', baseRun: 'cab', upperRun: 'cab', island: 'cab', diningTable: 'wood', desk: 'wood', console: 'wood', nightstand: 'wood', tvUnit: 'wood', sideTable: 'wood', coffeeTable: 'wood' };
   const kind = it && KIND[it.t]; $('sbSw').innerHTML = kind ? `<button class="sw0 ${!it.p.col ? 'on' : ''}" data-col="">צבע אוטומטי</button>` + SWC[kind].map(c => `<button class="swc ${it.p.col === c ? 'on' : ''}" data-col="${c}" style="background:${c}" aria-label="צבע"></button>`).join('') : '';
   $('ebUndo').disabled = !e.canUndo(); $('ebRedo').disabled = !e.canRedo(); $('sbName').textContent = it ? TYPES[it.t].label : '';
+  if (selNow && selNow !== selWas) { if (S.panel) closePanel(); $('roombar').classList.remove('on'); stageMeasure(); frameItem(it); } else stageMeasure();
+  if (!selNow && selWas) setTimeout(stageMeasure, 30);
 }
+$('sbDone').onclick = () => ed.select(null);
 $('sbSw').onclick = e => { const b = e.target.closest('[data-col]'); if (b) ed.setColor(b.dataset.col || null); };
 $('ebUndo').onclick = () => ed.undo(); $('ebRedo').onclick = () => ed.redo(); $('ebOrig').onclick = () => { if (confirm('לחזור לעיצוב המקורי שהצעתי? השינויים שלך יימחקו (אפשר לבטל).')) ed.reset(); };
 $('ebAdd').onclick = () => openPanel('edit'); $('ebDone').onclick = () => { editExit(); closePanel(); toast('העיצוב נשמר'); };
@@ -195,7 +308,7 @@ sheet.addEventListener('click', e => {
   else if (t.dataset.layer) { const k = t.dataset.layer; S.layers[k] = !S.layers[k]; if (k === 'ceiling') applyCeiling(); else W.setLayer(k, S.layers[k]); t.classList.toggle('on', S.layers[k]); }
   else if (t.dataset.fav) { const f = favs()[+t.dataset.fav]; if (f) { fp.cancel(); fp.x = f[0]; fp.y = f[1]; fp.ty = fp.yaw = f[2]; fp.tp = fp.pitch = f[3]; if (S.mode === 'top') { setMode('walk', { room: 'lobby' }); } toast('נקודת מבט ' + (+t.dataset.fav + 1)); } }
   else if (t.dataset.ed) { const a = t.dataset.ed; if (a === 'clear' && !confirm('לרוקן את כל הפריטים ולהתחיל מאפס?')) return; ({ undo: ed.undo, redo: ed.redo, reset: ed.reset, clear: ed.clearAll })[a](); }
-  else if (t.dataset.fintab) { S.fin = t.dataset.fintab; sheet.innerHTML = PANELS.finish(); }
+  else if (t.dataset.fintab) { S.fin = t.dataset.fintab; sheet.innerHTML = PANELS.finish(); finPitch(); }
   else if (t.dataset.fin) { const [k, v] = t.dataset.fin.split(':'); setFin(k, v); sheet.querySelectorAll('.swb').forEach(b => b.classList.toggle('on', b === t)); }
   else if (t.dataset.finsize) { setFin('size', +t.dataset.finsize); sheet.querySelectorAll('[data-finsize]').forEach(b => b.classList.toggle('on', b === t)); }
   else if (t.dataset.finreset) { resetFin(); sheet.innerHTML = PANELS.finish(); toast('הגימורים חזרו לסגנון'); }
@@ -270,12 +383,12 @@ const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 
 function floorPoint(cx, cy) { const v = new THREE.Vector2(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(v, camera); const p = new THREE.Vector3(); return ray.ray.intersectPlane(plane, p) ? p : null; }
 const marker = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.22, 32), new THREE.MeshBasicMaterial({ color: '#f0d9ad', transparent: true, opacity: 0, depthTest: false })); marker.rotation.x = -Math.PI / 2; marker.renderOrder = 30; scene.add(marker); let markT = 0;
 function showMarker(x, y) { marker.position.set(x, 0.05, -y); markT = 1.2; }
-const ed = createEditor({ W, scene, app: $('app'), orbit, camera: () => camera, floorPoint: (cx, cy) => floorPoint(cx, cy), centerPoint: () => { if (S.mode === 'top') return [orbit.target.x, -orbit.target.z]; const p = floorPoint(innerWidth / 2, innerHeight * 0.62); if (p && Math.hypot(p.x - fp.x, -p.z - fp.y) < 5.5) return [p.x, -p.z]; return [fp.x - Math.sin(fp.yaw) * 2.5, fp.y + Math.cos(fp.yaw) * 2.5]; }, isTop: () => S.mode === 'top', onChange: () => { rebuildGrid(); }, onSelect: updateEditUI, toast });
+const ed = createEditor({ W, scene, app: $('app'), orbit, camera: () => camera, floorPoint: (cx, cy) => floorPoint(cx, cy), centerPoint: () => { if (S.mode === 'top') return [orbit.target.x, -orbit.target.z]; const p = floorPoint(innerWidth / 2, innerHeight * 0.62); if (p && Math.hypot(p.x - fp.x, -p.z - fp.y) < 5.5) return [p.x, -p.z]; return [fp.x - Math.sin(fp.yaw) * 2.5, fp.y + Math.cos(fp.yaw) * 2.5]; }, isTop: () => S.mode === 'top', stage: () => ({ top: stg.top, bottom: stg.bottom }), autoEnter: () => enterEdit(true), onChange: () => { rebuildGrid(); }, onSelect: updateEditUI, toast });
 canvas.addEventListener('pointerup', e => {
   const wasLook = e.pointerId === lookId; if (wasLook) lookId = null;
   if (!tap) return; const dt = performance.now() - tap.t, dd = Math.hypot(e.clientX - tap.x, e.clientY - tap.y); const t0 = tap; tap = null;
   if (dd > 9 || dt > 450) return; if (ed.on && ed.tap(e.clientX, e.clientY)) return; const p = floorPoint(e.clientX, e.clientY); if (!p) return; const x = p.x, y = -p.z;
-  if (S.mode === 'top') { if (ed.on) return; const id = roomAt(x, y); if (id) { S.mode = 'walk'; setModeUI('walk'); applyCeiling(); orbit.enabled = false; enterAt(ROOMMAP[id]); showRoomLabel(id); } return; }
+  if (S.mode === 'top') { if (ed.on) return; const id = roomAt(x, y); if (id) goRoom(id); return; }
   if (grid.ok(x, y) || grid.nearest(x, y)) { const d = Math.hypot(x - fp.x, y - fp.y); if (d < 22) { const g = grid.nearest(x, y); fp.goto(...g); showMarker(g[0], g[1]); } }
 });
 addEventListener('keydown', e => { fp.keys[e.key] = true; fp.keys[e.key.toLowerCase()] = true; if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault(); if (S.mode === 'tour' && 'wasdWASD'.includes(e.key) && e.key.length === 1) tour.stop(false); if (e.key === 'Escape') closePanel(); });
@@ -309,7 +422,7 @@ function frame() {
   }
   if (S.mode !== 'top' && S.mode !== 'intro') { if ((acc += dt) > 0.25) { acc = 0; showRoomLabel(roomAt(fp.x, fp.y)); updateHashSoft(); } }
   if (markT > 0) { markT -= dt; const k = Math.max(0, markT / 1.2); marker.material.opacity = k * 0.9; marker.scale.setScalar(1 + (1 - k) * 1.2); }
-  if (ed.on) ed.updateHandle();
+  stageApply(dt); if (ed.on) ed.updateHandle();
   mT += dt; if (mT > 0.08) { mT = 0; drawMini(); }
   renderer.render(scene, camera);
   // adaptive quality
@@ -326,5 +439,5 @@ $('goTop').onclick = () => { camera.clearViewOffset(); $('intro').classList.add(
 // restore shared state
 (function fromHash() { const h = new URLSearchParams(location.hash.slice(1)); const s = h.get('s'), t = h.get('t'), p = h.get('p'); if (s && STYLES[s]) setStyle(s, true); else setStyle('C', true); if (t && W.TIMES[t]) setTime(t, true); else setTime('noon', true); if (p) { const a = p.split(',').map(Number); if (a.length === 4 && a.every(isFinite)) { fp.setPos(a[0], a[1]); fp.ty = fp.yaw = a[2]; fp.tp = fp.pitch = a[3]; } } })();
 ed.init(); rebuildGrid(); applyCeiling(); W.setLayer('ceiling', false);
-window.__apt = { ed, S, fp, W, camera, scene, tour, grid, setMode, goRoom, startTour, renderer, ROOMS };
+window.__apt = { roomOverview, bestView, stg, frameItem, showRoomBar, ed, S, fp, W, camera, scene, tour, grid, setMode, goRoom, startTour, renderer, ROOMS };
 requestAnimationFrame(() => { $('load').classList.add('off'); $('intro').classList.remove('off'); frame(); if (/[?&]dev/.test(location.search)) $('goWalk').click(); });
